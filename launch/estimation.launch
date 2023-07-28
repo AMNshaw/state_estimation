@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<launch>
+        <arg name="vehicle_1" default="iris_1"/>
+        <arg name="vehicle_2" default="iris_2"/>
+        <arg name="vehicle_3" default="iris_3"/>
+
+        <group ns="$(arg vehicle_1)">
+                <node name="image_Synchronizer" pkg="state_estimation" type="imageSync" output="screen"></node>
+                <param name="vehicle" value="$(arg vehicle_1)" /> 
+                
+        </group>
+</launch>
