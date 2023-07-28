@@ -26,6 +26,9 @@ private:
   string depth_input_topic;
   string yolo_output_topic;
   string depth_output_topic;
+  string vehicle;
+
+  bool start;
 
   void sync_cb(const sensor_msgs::ImageConstPtr& ori_yolo, const sensor_msgs::ImageConstPtr& ori_depth);
 public:
@@ -37,9 +40,8 @@ public:
 
 Time_sync::Time_sync(ros::NodeHandle &nh, string group_ns)
 {
-
-  cout << "start synchronizing messages..." << endl;
-
+  start = false;
+  vehicle = group_ns;
   set_topic(group_ns);
 
   sync_yolo_pub = nh.advertise<sensor_msgs::Image>(yolo_output_topic, 1);
@@ -49,7 +51,7 @@ Time_sync::Time_sync(ros::NodeHandle &nh, string group_ns)
   message_filters::Subscriber<sensor_msgs::Image> img_depth_sub(nh, depth_input_topic, 1);
 
   typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, sensor_msgs::Image> MySyncPolicy;
-  message_filters::Synchronizer<MySyncPolicy> sync(MySyncPolicy(20), img_yolo_sub, img_depth_sub);
+  message_filters::Synchronizer<MySyncPolicy> sync(MySyncPolicy(100), img_yolo_sub, img_depth_sub);
   sync.registerCallback(boost::bind(&Time_sync::sync_cb, this, _1, _2));
 
   ros::spin();
@@ -59,12 +61,18 @@ Time_sync::~Time_sync(){}
 
 void Time_sync::sync_cb(const sensor_msgs::ImageConstPtr& ori_yolo, const sensor_msgs::ImageConstPtr& ori_depth)
 {
+  if(!start)
+  {
+    start = true;
+    cout << "[" << vehicle << " Message_synchronizer]: Start synchronizing messages... \n\n";
+  }
+
   sync_img_yolo = *ori_yolo;
   sync_img_depth = *ori_depth;
 
-  cout << "*******************" << endl;
-  ROS_INFO("Image_yolo stamp value is: %f", sync_img_yolo.header.stamp.toSec());
-  ROS_INFO("Image_depth stamp value is: %f", sync_img_depth.header.stamp.toSec());
+  //cout << "*******************" << endl;
+  //ROS_INFO("%s image_yolo stamp value is: %f", vehicle.c_str(), sync_img_yolo.header.stamp.toSec());
+  //ROS_INFO("%s image_depth stamp value is: %f", vehicle.c_str(), sync_img_depth.header.stamp.toSec());
 
   sync_yolo_pub.publish(sync_img_yolo);
   sync_depth_pub.publish(sync_img_depth);
@@ -79,7 +87,7 @@ void Time_sync::set_topic(string group_ns)
   yolo_input_topic = ss_yolo.str();
   depth_input_topic = ss_depth.str();
 
-  cout << "Input topic was set:\n" << yolo_input_topic << endl << depth_input_topic << endl;
+  cout << "[" << group_ns << " Message_synchronizer]: Input topic was set:\n" << yolo_input_topic << endl << depth_input_topic << endl;
 
   ss_yolo.str("");
   ss_depth.str("");
@@ -88,7 +96,7 @@ void Time_sync::set_topic(string group_ns)
   yolo_output_topic = ss_yolo.str();
   depth_output_topic = ss_depth.str();
 
-  cout << "Output topic was set:\n" << yolo_output_topic << endl << depth_output_topic << endl;
+  cout << "[" << group_ns << " Message_synchronizer]: Output topic was set:\n" << yolo_output_topic << endl << depth_output_topic << "\n\n";
 }
 
 
@@ -99,11 +107,10 @@ int main(int argc, char** argv)
 
   string group_ns;
   ros::param::get("vehicle", group_ns);
-  cout << group_ns << endl;
 
   Time_sync sync(nh, group_ns);
   
-  ros::spin();
+  
 
   return 0;
 }

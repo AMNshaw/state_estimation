@@ -7,6 +7,9 @@
         <group ns="$(arg vehicle_1)">
                 <node name="image_Synchronizer" pkg="state_estimation" type="imageSync" output="screen"></node>
                 <param name="vehicle" value="$(arg vehicle_1)" /> 
-                
+        </group>
+        <group ns="$(arg vehicle_2)">
+                <node name="image_Synchronizer" pkg="state_estimation" type="imageSync" output="screen"></node>
+                <param name="vehicle" value="$(arg vehicle_2)" /> 
         </group>
 </launch>
