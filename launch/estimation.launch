@@ -5,11 +5,11 @@
         <arg name="vehicle_3" default="iris_3"/>
 
         <group ns="$(arg vehicle_1)">
-                <node name="image_Synchronizer" pkg="state_estimation" type="imageSync" output="screen"></node>
+                <node name="image_Synchronizer" pkg="state_estimation" type="image_process" output="screen"></node>
                 <param name="vehicle" value="$(arg vehicle_1)" /> 
         </group>
         <group ns="$(arg vehicle_2)">
-                <node name="image_Synchronizer" pkg="state_estimation" type="imageSync" output="screen"></node>
+                <node name="image_Synchronizer" pkg="state_estimation" type="image_process" output="screen"></node>
                 <param name="vehicle" value="$(arg vehicle_2)" /> 
         </group>
 </launch>

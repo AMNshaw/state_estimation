@@ -4,7 +4,7 @@
 #include <ros/ros.h>
 #include "ros/param.h"
 
-#include <std_msgs/Int32MultiArray.h>
+//#include <state_estimation/Int32MultiArrayStamped.h>
 
 #include "Eif.h"
 
@@ -19,15 +19,17 @@ public:
 
 std::vector<int> detections;
 
-void bboxes_cb(const std_msgs::Int32MultiArray::ConstPtr& msg)
+/*
+void bboxes_cb(const state_estimation::Int32MultiArrayStamped::ConstPtr& msg)
 {
 	detections = msg->data;
-	/*
+	
 	for(int i = 0; i < detections.size(); i++)
 		std::cout << detections[i] << " ";
 	std::cout << std::endl;
-	*/
+	
 }
+*/
 
 int main(int argc, char **argv)
 {
@@ -40,7 +42,7 @@ int main(int argc, char **argv)
     ss << "/" << vehicle << "/yolov7/yolov7/boundingBox";
     std::string bbox_topic = ss.str();
 
-    ros::Subscriber bboxes_sub = nh.subscribe<std_msgs::Int32MultiArray>(bbox_topic, 10, bboxes_cb);
+    //ros::Subscriber bboxes_sub = nh.subscribe<state_estimation::Int32MultiArrayStamped>(bbox_topic, 10, bboxes_cb);
 
 
     ros::spin();

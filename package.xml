@@ -61,7 +61,10 @@
   <build_depend>message_filters</build_depend>
   <build_export_depend>message_filters</build_export_depend>
   <exec_depend>message_filters</exec_depend>
-
+  <build_depend>message_generation</build_depend>
+  <exec_depend>message_runtime</exec_depend>
+  <build_depend>cv_bridge</build_depend>
+  <exec_depend>cv_bridge</exec_depend>
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>

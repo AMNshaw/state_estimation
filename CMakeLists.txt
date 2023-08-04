@@ -12,9 +12,13 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   std_msgs
   message_filters
+  message_generation
+  cv_bridge
 )
 
 find_package(Eigen3 REQUIRED)
+find_package(OpenCV REQUIRED)
+
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -50,11 +54,10 @@ find_package(Eigen3 REQUIRED)
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
-#   Message2.msg
-# )
+ add_message_files(
+   FILES
+   Int32MultiArrayStamped.msg  
+ )
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -71,10 +74,10 @@ find_package(Eigen3 REQUIRED)
 # )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   std_msgs
-# )
+ generate_messages(
+   DEPENDENCIES
+   std_msgs
+ )
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -110,6 +113,7 @@ catkin_package(
 #  LIBRARIES state_estimation
 #  CATKIN_DEPENDS roscpp rospy std_msgs
 #  DEPENDS system_lib
+CATKIN_DEPENDS message_runtime cv_bridge roscpp rospy std_msgs
 )
 
 ###########
@@ -122,6 +126,7 @@ include_directories(
 # include
   ${catkin_INCLUDE_DIRS}
   ${EIGEN3_INCLUDE_DIRS}
+  ${OpenCV_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
@@ -147,12 +152,12 @@ target_include_directories(state_estimation PRIVATE
   include/${PROJECT_NAME}/ ) 
 
 # sync
-add_executable(imageSync 
-  node/imageSync.cpp
+add_executable(image_process 
+  node/image_process.cpp
   )
-target_link_libraries(imageSync
+target_link_libraries(image_process
   ${catkin_LIBRARIES} )
-target_include_directories(imageSync PRIVATE
+target_include_directories(image_process PRIVATE
   include/${PROJECT_NAME}/ ) 
 
 
