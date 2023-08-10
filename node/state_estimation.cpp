@@ -4,7 +4,7 @@
 #include <ros/ros.h>
 #include "ros/param.h"
 
-//#include <state_estimation/Int32MultiArrayStamped.h>
+#include <std_msgs/Float32MultiArray.h>
 
 #include "Eif.h"
 
@@ -17,10 +17,10 @@ private:
 public:
 };
 
-std::vector<int> detections;
+std::vector<float> detections;
 
-/*
-void bboxes_cb(const state_estimation::Int32MultiArrayStamped::ConstPtr& msg)
+
+void bboxes_cb(const std_msgs::Float32MultiArray::ConstPtr& msg)
 {
 	detections = msg->data;
 	
@@ -29,20 +29,20 @@ void bboxes_cb(const state_estimation::Int32MultiArrayStamped::ConstPtr& msg)
 	std::cout << std::endl;
 	
 }
-*/
+
 
 int main(int argc, char **argv)
 {
-	ros::init(argc, argv, "formation");
+	ros::init(argc, argv, "state_estimation");
     ros::NodeHandle nh;
 
     std::string vehicle;
     std::stringstream ss;
     ros::param::get("vehicle", vehicle);
-    ss << "/" << vehicle << "/yolov7/yolov7/boundingBox";
+    ss << "/" << vehicle << "/synchronizer/yolov7/boundingBox";
     std::string bbox_topic = ss.str();
 
-    //ros::Subscriber bboxes_sub = nh.subscribe<state_estimation::Int32MultiArrayStamped>(bbox_topic, 10, bboxes_cb);
+	ros::Subscriber bboxes_sub = nh.subscribe<std_msgs::Float32MultiArray>(bbox_topic, 10, bboxes_cb);
 
 
     ros::spin();
