@@ -14,10 +14,14 @@ find_package(catkin REQUIRED COMPONENTS
   message_filters
   message_generation
   cv_bridge
+  pcl_ros
+  pcl_conversions
 )
 
 find_package(Eigen3 REQUIRED)
 find_package(OpenCV REQUIRED)
+find_package(PCL REQUIRED)
+
 
 
 ## System dependencies are found with CMake's conventions
@@ -113,7 +117,7 @@ catkin_package(
 #  LIBRARIES state_estimation
 #  CATKIN_DEPENDS roscpp rospy std_msgs
 #  DEPENDS system_lib
-CATKIN_DEPENDS message_runtime cv_bridge roscpp rospy std_msgs
+CATKIN_DEPENDS message_runtime cv_bridge roscpp rospy std_msgs pcl_conversions
 )
 
 ###########
@@ -127,6 +131,7 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
   ${EIGEN3_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS}
+  ${PCL_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
@@ -156,7 +161,9 @@ add_executable(image_process
   node/image_process.cpp
   )
 target_link_libraries(image_process
-  ${catkin_LIBRARIES} )
+  ${catkin_LIBRARIES} 
+  ${PCL_LIBRARIES}
+  )
 target_include_directories(image_process PRIVATE
   include/${PROJECT_NAME}/ ) 
 

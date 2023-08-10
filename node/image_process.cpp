@@ -31,10 +31,10 @@ private:
   std_msgs::Float32MultiArray sync_bbox_msgs;
 
   string yolo_input_topic;
-  string depth_input_topic;
-  string bbox_input_topic;
   string yolo_output_topic;
+  string depth_input_topic;
   string depth_output_topic;
+  string bbox_input_topic;
   string bbox_output_topic;
   string vehicle;
 
@@ -69,8 +69,14 @@ Image_process::Image_process(ros::NodeHandle &nh, string group_ns)
   message_filters::Subscriber<sensor_msgs::Image> img_depth_sub(nh, depth_input_topic, 1);
   message_filters::Subscriber<state_estimation::Int32MultiArrayStamped> bbox_msg_sub(nh, bbox_input_topic, 1);
 
-  typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, sensor_msgs::Image, state_estimation::Int32MultiArrayStamped> MySyncPolicy;
-  message_filters::Synchronizer<MySyncPolicy> sync(MySyncPolicy(100), img_yolo_sub, img_depth_sub, bbox_msg_sub);
+
+  typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image,
+                                                          sensor_msgs::Image,
+                                                          state_estimation::Int32MultiArrayStamped> MySyncPolicy;
+  message_filters::Synchronizer<MySyncPolicy> sync(MySyncPolicy(100), 
+                                                   img_yolo_sub,
+                                                   img_depth_sub,
+                                                   bbox_msg_sub);
   sync.registerCallback(boost::bind(&Image_process::sync_cb, this, _1, _2, _3));
 
   bbox_col = 5;
@@ -115,8 +121,8 @@ void Image_process::reArrangeBbox(state_estimation::Int32MultiArrayStamped bbox_
   {
     for(int i = 0; i <bbox_data.size(); i+=bbox_col)
     {
-      u = (float)(bbox_data[i+1] + bbox_data[i+3])/2;
-      v = (float)(bbox_data[i+2] + bbox_data[i+4])/2;
+      u = (float)(bbox_data[i+2] + bbox_data[i+4])/2;
+      v = (float)(bbox_data[i+1] + bbox_data[i+3])/2;
       reArrangeBbox_data.push_back(u);
       reArrangeBbox_data.push_back(v);
       reArrangeBbox_data.push_back(getDepth((int)u, (int)v));
@@ -129,18 +135,22 @@ void Image_process::reArrangeBbox(state_estimation::Int32MultiArrayStamped bbox_
 
 float Image_process::getDepth(int u, int v)
 {
-  int depth = 0;
-  depth = sync_img_depth.data[sync_img_depth.width*u+v];
-  return (float)depth;
+  float depth = 0;
+  cv_bridge::CvImagePtr cv_ptr = cv_bridge::toCvCopy(sync_img_depth, sensor_msgs::image_encodings::TYPE_32FC1);
+  
+  depth = cv_ptr->image.at<float>(u, v);
+
+  return depth;
 }
 
 void Image_process::set_topic(string group_ns)
 {
-  std::stringstream ss_yolo, ss_depth, ss_bbox;
+  std::stringstream ss_yolo, ss_depth, ss_bbox, ss_points;
 
   ss_yolo << "/" << group_ns << "/yolov7/yolov7/visualization";
   ss_depth << "/" << group_ns << "/camera/depth/image_raw";
   ss_bbox << "/" << group_ns << "/yolov7/yolov7/boundingBox";  
+
   yolo_input_topic = ss_yolo.str();
   depth_input_topic = ss_depth.str();
   bbox_input_topic = ss_bbox.str();
