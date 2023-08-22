@@ -157,14 +157,14 @@ target_include_directories(state_estimation PRIVATE
   include/${PROJECT_NAME}/ ) 
 
 # sync
-add_executable(image_process 
-  node/image_process.cpp
+add_executable(self_msg_sync 
+  node/self_msg_sync.cpp
   )
-target_link_libraries(image_process
+target_link_libraries(self_msg_sync
   ${catkin_LIBRARIES} 
   ${PCL_LIBRARIES}
   )
-target_include_directories(image_process PRIVATE
+target_include_directories(self_msg_sync PRIVATE
   include/${PROJECT_NAME}/ ) 
 
 
