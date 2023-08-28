@@ -7,7 +7,7 @@
 #include "ros/param.h"
 #include <std_msgs/Float32MultiArray.h>
 
-#include "Eif.h"
+#include "EIF.h"
 
 
 class Data_process
@@ -134,7 +134,7 @@ int main(int argc, char **argv)
 	}
 	std::cout << "Topics all checked" << std::endl;
 
-	Eif eif(state_size, measurement_size);
+	EIF eif(state_size, measurement_size);
 
 	last_t = ros::Time::now().toSec();
 
@@ -145,9 +145,9 @@ int main(int argc, char **argv)
     	eif.setSelfState(dp.self_pose, dp.self_vel);
     	eif.predict(dt);
     	measurement << dp.bboxes[0], dp.bboxes[1], dp.bboxes[2];
-    	eif.correct(measurement);
-    	eif.compare(dp.targetState, measurement);
-
+    	if(measurement(2) != 18.0)
+    		eif.correct(measurement);
+    	eif.compare(dp.targetState);
 
     	//std::cout << "ground truth:\n" << dp.targetState << "\n\n";
 

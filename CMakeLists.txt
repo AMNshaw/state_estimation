@@ -139,10 +139,10 @@ include_directories(
 #   src/${PROJECT_NAME}/state_estimation.cpp
 # )
 
-add_library(eif
-   src/Eif.cpp
+add_library(EIF
+   src/EIF.cpp
 )
-target_include_directories(eif PRIVATE
+target_include_directories(EIF PRIVATE
   include/${PROJECT_NAME}/ )
 
 
@@ -151,7 +151,7 @@ add_executable(state_estimation
   node/state_estimation.cpp
   )
 target_link_libraries(state_estimation
-  eif
+  EIF
   ${catkin_LIBRARIES} )
 target_include_directories(state_estimation PRIVATE
   include/${PROJECT_NAME}/ ) 

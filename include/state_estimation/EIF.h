@@ -5,31 +5,30 @@
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/TwistStamped.h>
 
-class Eif
+class EIF
 {
 private:
 
 	int state_size;
 	int measurement_size;
 
-	Eigen::VectorXd X_T; //state
-	Eigen::VectorXd X_T_hat; //predicted state
-	Eigen::VectorXd X_B;
+	Eigen::VectorXd X_t; //state
+	Eigen::VectorXd X_b;
 	Eigen::VectorXd E;
 	Eigen::VectorXd E_hat;
 	Eigen::VectorXd xi;
 	Eigen::VectorXd xi_hat; // information vector
 	Eigen::VectorXd y;
-	Eigen::VectorXd h_X;
+	Eigen::VectorXd h;
 
-	Eigen::MatrixXd Omega;
-	Eigen::MatrixXd Omega_hat;
-	Eigen::MatrixXd S;
+	Eigen::MatrixXd s;
 	Eigen::MatrixXd F;
 	Eigen::MatrixXd H;
 	Eigen::MatrixXd Q; //noise matrix
     Eigen::MatrixXd R; //noise matrix
     Eigen::MatrixXd C;
+    Eigen::MatrixXd P;
+    Eigen::MatrixXd P_hat;
 
     Eigen::MatrixXd Intrinsic;
     Eigen::VectorXd t_w2b;
@@ -41,15 +40,15 @@ private:
     int v;
 
 public:
-	Eif(int x_size, int z_size);
-	~Eif();
+	EIF(int x_size, int z_size);
+	~EIF();
 	void predict(double dt);
 	void correct(Eigen::VectorXd measurement);
 	void set_process_noise(Eigen::MatrixXd matrix);
     void set_measurement_noise(Eigen::MatrixXd matrix);
     void set_intrinsic_matrix(Eigen::MatrixXd matrix);
     void setSelfState(geometry_msgs::PoseStamped P, geometry_msgs::TwistStamped V);
-    void compare(Eigen::VectorXd groundTruth, Eigen::VectorXd measurement);
+    void compare(Eigen::VectorXd groundTruth);
 
 };
 
