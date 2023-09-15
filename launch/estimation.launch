@@ -4,19 +4,20 @@
         <arg name="vehicle_2" default="iris_2"/>
         <arg name="vehicle_3" default="iris_3"/>
 
-        <!--group ns="$(arg vehicle_1)">
+        <group ns="$(arg vehicle_1)">
                 <node name="synchronizer" pkg="state_estimation" type="self_msg_sync" output="screen"></node>
                 <node name="state_estimation" pkg="state_estimation" type="state_estimation" output="screen"></node>
                 <param name="vehicle" value="$(arg vehicle_1)" /> 
-        </group-->
-        <!--group ns="$(arg vehicle_2)">
+        </group>
+        <group ns="$(arg vehicle_2)">
                 <node name="synchronizer" pkg="state_estimation" type="self_msg_sync" output="screen"></node>
-                <node name="state_estimation" pkg="state_estimation" type="state_estimation" output="screen"></node>
+                <node name="state_estimation" pkg="state_estimation" type="state_estimation"></node>
                 <param name="vehicle" value="$(arg vehicle_2)" /> 
-        </group-->
-        <group ns="$(arg vehicle_3)">
+        </group>
+        <!--group ns="$(arg vehicle_3)">
                 <node name="synchronizer" pkg="state_estimation" type="self_msg_sync" output="screen"></node>
                 <node name="state_estimation" pkg="state_estimation" type="state_estimation" output="screen"></node>
                 <param name="vehicle" value="$(arg vehicle_3)" /> 
-        </group>
+        </group-->
+        <node name="HEIF" pkg="state_estimation" type="consensus_state_estimation" output="screen"></node>
 </launch>

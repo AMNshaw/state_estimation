@@ -9,6 +9,7 @@
 #include <message_filters/synchronizer.h>
 #include <message_filters/sync_policies/approximate_time.h>
 #include <message_filters/sync_policies/exact_time.h>
+
 #include <sensor_msgs/Image.h>
 #include <std_msgs/Float32MultiArray.h>
 #include <state_estimation/Int32MultiArrayStamped.h>
@@ -137,7 +138,7 @@ void Image_process::sync_cb(const sensor_msgs::ImageConstPtr& ori_yolo,
   if(!start)
   {
     start = true;
-    cout << "[" << vehicle << " Message_synchronizer]: Start synchronizing messages... \n\n";
+    cout << "[" << vehicle << " Message_synchronizer]: Start synchronizing messages. \n";
   }
 
   sync_img_yolo = *ori_yolo;
@@ -217,7 +218,8 @@ void Image_process::set_topic(string group_ns)
                           << bbox_input_topic << endl
                           << self_pose_input_topic << endl
                           << self_vel_input_topic << endl
-                          <<targetPose_input_topic << endl;
+                          <<targetPose_input_topic << endl
+                          << "==============================================\n";
 
   yolo_output_topic = prefix + string("/synchronizer/yolov7/visualization");
   depth_output_topic = prefix + string("/synchronizer/camera/depth/image_raw");
@@ -233,7 +235,8 @@ void Image_process::set_topic(string group_ns)
                           << bbox_output_topic << endl
                           << self_pose_output_topic << endl
                           << self_vel_output_topic << endl
-                          << targetVel_output_topic << "\n\n";
+                          << targetVel_output_topic << endl
+                          << "===================================================================================================\n\n";
 }
 
 void Image_process::set_bbox_col(int col){bbox_col = col;}
@@ -250,7 +253,5 @@ int main(int argc, char** argv)
 
   Image_process process(nh, group_ns);
   
-  
-
   return 0;
 }

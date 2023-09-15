@@ -1,0 +1,8 @@
+Header header
+float32[] predInfoMat
+float32[] predInfoVec
+float32[] corrInfoMat
+float32[] corrInfoVec
+float32[] fusedInfoMat 
+float32[] fusedInfoVec
+int32 stateSize

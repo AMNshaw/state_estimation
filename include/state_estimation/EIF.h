@@ -13,7 +13,9 @@ private:
 	int measurement_size;
 
 	Eigen::VectorXd X_t; //state
+	Eigen::VectorXd X_t_hat;
 	Eigen::VectorXd X_b;
+	Eigen::VectorXd X_b_last;
 	Eigen::VectorXd E;
 	Eigen::VectorXd E_hat;
 	Eigen::VectorXd xi;
@@ -29,6 +31,10 @@ private:
     Eigen::MatrixXd C;
     Eigen::MatrixXd P;
     Eigen::MatrixXd P_hat;
+    Eigen::MatrixXd Omega;
+    Eigen::MatrixXd Omega_hat;
+    Eigen::VectorXd pre_measurement;
+    Eigen::MatrixXd pre_Omega;
 
     Eigen::MatrixXd Intrinsic;
     Eigen::VectorXd t_w2b;
@@ -38,18 +44,26 @@ private:
 
     int u;
     int v;
+    bool consensus;
 
 public:
 	EIF(int x_size, int z_size);
+	EIF(int x_size, int z_size, bool Consensus);
 	~EIF();
 	void predict(double dt);
 	void correct(Eigen::VectorXd measurement);
+	void predict_fused(double dt, Eigen::MatrixXd Omega, Eigen::VectorXd xi, bool flag);
+	void correct_fused(Eigen::VectorXd z);
 	void set_process_noise(Eigen::MatrixXd matrix);
     void set_measurement_noise(Eigen::MatrixXd matrix);
     void set_intrinsic_matrix(Eigen::MatrixXd matrix);
     void setSelfState(geometry_msgs::PoseStamped P, geometry_msgs::TwistStamped V);
     void compare(Eigen::VectorXd groundTruth);
+    Eigen::VectorXd getTargetState();
+    void process(double dt, Eigen::VectorXd z, Eigen::MatrixXd fusedOmega, Eigen::VectorXd fusedXi, bool flag);
 
+    void getPredictionPairs(Eigen::MatrixXd* infoMat, Eigen::VectorXd* infoVec);
+    void getCorrectionPairs(Eigen::MatrixXd* infoMat, Eigen::VectorXd* infoVec);
 };
 
 

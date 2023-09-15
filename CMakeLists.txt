@@ -61,6 +61,7 @@ find_package(PCL REQUIRED)
  add_message_files(
    FILES
    Int32MultiArrayStamped.msg  
+   EIFpairStamped.msg
  )
 
 ## Generate services in the 'srv' folder
@@ -145,6 +146,11 @@ add_library(EIF
 target_include_directories(EIF PRIVATE
   include/${PROJECT_NAME}/ )
 
+add_library(HEIF
+   src/HEIF.cpp
+)
+target_include_directories(HEIF PRIVATE
+  include/${PROJECT_NAME}/ )
 
 # state_estimation
 add_executable(state_estimation 
@@ -165,6 +171,16 @@ target_link_libraries(self_msg_sync
   ${PCL_LIBRARIES}
   )
 target_include_directories(self_msg_sync PRIVATE
+  include/${PROJECT_NAME}/ ) 
+
+# consensus_state_estimation
+add_executable(consensus_state_estimation 
+  node/consensus_state_estimation.cpp
+  )
+target_link_libraries(consensus_state_estimation
+  ${catkin_LIBRARIES} 
+  HEIF)
+target_include_directories(consensus_state_estimation PRIVATE
   include/${PROJECT_NAME}/ ) 
 
 
