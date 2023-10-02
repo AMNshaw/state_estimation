@@ -18,6 +18,7 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/TwistStamped.h>
+#include <sensor_msgs/Imu.h>
 
 using namespace std;
 using namespace message_filters;
@@ -32,9 +33,11 @@ private:
   ros::Publisher sync_selfVel_pub;
   ros::Publisher sync_targetPose_pub;
   ros::Publisher sync_targetVel_pub;
+  ros::Publisher sync_imu_pub;
 
   sensor_msgs::Image sync_img_yolo;
   sensor_msgs::Image sync_img_depth;
+  sensor_msgs::Imu sync_imu_data;
   std_msgs::Float32MultiArray sync_bbox_msgs;
   geometry_msgs::PoseStamped sync_selfPose;
   geometry_msgs::TwistStamped sync_selfVel;
@@ -56,6 +59,8 @@ private:
   string targetPose_output_topic;
   string targetVel_input_topic;
   string targetVel_output_topic;
+  string self_imu_input_topic;
+  string self_imu_output_topic;
   
 
   int bbox_col;
@@ -67,7 +72,8 @@ private:
                const geometry_msgs::PoseStamped::ConstPtr& ori_selfPose,
                const geometry_msgs::TwistStamped::ConstPtr& ori_selfVel,
                const geometry_msgs::PoseStamped::ConstPtr& ori_targetPose,
-               const geometry_msgs::TwistStamped::ConstPtr& ori_targetVel);
+               const geometry_msgs::TwistStamped::ConstPtr& ori_targetVel,
+               const sensor_msgs::Imu::ConstPtr& ori_imuData);
 
 public:
   Image_process(ros::NodeHandle &nh, string group_ns);
@@ -92,6 +98,7 @@ Image_process::Image_process(ros::NodeHandle &nh, string group_ns)
   sync_selfVel_pub = nh.advertise<geometry_msgs::TwistStamped>(self_vel_output_topic, 1);
   sync_targetPose_pub = nh.advertise<geometry_msgs::PoseStamped>(targetPose_output_topic, 1);
   sync_targetVel_pub = nh.advertise<geometry_msgs::TwistStamped>(targetVel_output_topic, 1);
+  sync_imu_pub = nh.advertise<sensor_msgs::Imu>(self_imu_output_topic, 1);
 
 
   message_filters::Subscriber<sensor_msgs::Image> img_yolo_sub(nh, yolo_input_topic, 1);
@@ -101,6 +108,7 @@ Image_process::Image_process(ros::NodeHandle &nh, string group_ns)
   message_filters::Subscriber<geometry_msgs::TwistStamped> self_vel_sub(nh, self_vel_input_topic, 1);
   message_filters::Subscriber<geometry_msgs::PoseStamped> target_pose_sub(nh, targetPose_input_topic, 1);
   message_filters::Subscriber<geometry_msgs::TwistStamped> target_vel_sub(nh, targetVel_input_topic, 1);
+  message_filters::Subscriber<sensor_msgs::Imu> self_imu_sub(nh, self_imu_input_topic, 1);
 
 
   typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image,
@@ -109,7 +117,9 @@ Image_process::Image_process(ros::NodeHandle &nh, string group_ns)
                                                           geometry_msgs::PoseStamped,
                                                           geometry_msgs::TwistStamped,
                                                           geometry_msgs::PoseStamped,
-                                                          geometry_msgs::TwistStamped> MySyncPolicy;
+                                                          geometry_msgs::TwistStamped,
+                                                          sensor_msgs::Imu> MySyncPolicy;
+
   message_filters::Synchronizer<MySyncPolicy> sync(MySyncPolicy(100), 
                                                    img_yolo_sub,
                                                    img_depth_sub,
@@ -117,8 +127,9 @@ Image_process::Image_process(ros::NodeHandle &nh, string group_ns)
                                                    self_pose_sub,
                                                    self_vel_sub,
                                                    target_pose_sub,
-                                                   target_vel_sub);
-  sync.registerCallback(boost::bind(&Image_process::sync_cb, this, _1, _2, _3, _4, _5, _6, _7));
+                                                   target_vel_sub,
+                                                   self_imu_sub);
+  sync.registerCallback(boost::bind(&Image_process::sync_cb, this, _1, _2, _3, _4, _5, _6, _7, _8));
 
   bbox_col = 5;
 
@@ -133,7 +144,8 @@ void Image_process::sync_cb(const sensor_msgs::ImageConstPtr& ori_yolo,
                             const geometry_msgs::PoseStamped::ConstPtr& ori_selfPose,
                             const geometry_msgs::TwistStamped::ConstPtr& ori_selfVel,
                             const geometry_msgs::PoseStamped::ConstPtr& ori_targetPose,
-                            const geometry_msgs::TwistStamped::ConstPtr& ori_targetVel)
+                            const geometry_msgs::TwistStamped::ConstPtr& ori_targetVel,
+                            const sensor_msgs::Imu::ConstPtr& ori_imuData)
 {
   if(!start)
   {
@@ -148,6 +160,7 @@ void Image_process::sync_cb(const sensor_msgs::ImageConstPtr& ori_yolo,
   sync_selfVel = *ori_selfVel;
   sync_targetPose = *ori_targetPose;
   sync_targetVel = *ori_targetVel;
+  sync_imu_data = *ori_imuData;
 
   /*
   ROS_INFO("%s image_yolo stamp value is: %f", vehicle.c_str(), sync_img_yolo.header.stamp.toSec());
@@ -162,6 +175,7 @@ void Image_process::sync_cb(const sensor_msgs::ImageConstPtr& ori_yolo,
   sync_selfVel_pub.publish(sync_selfVel);
   sync_targetPose_pub.publish(sync_targetPose);
   sync_targetVel_pub.publish(sync_targetVel);
+  sync_imu_pub.publish(sync_imu_data);
 }
 
 void Image_process::reArrangeBbox(state_estimation::Int32MultiArrayStamped bbox_msgs)
@@ -211,6 +225,7 @@ void Image_process::set_topic(string group_ns)
   self_vel_input_topic = prefix + string("/mavros/local_position/velocity_local");
   targetPose_input_topic = string("/target/mavros/local_position/pose_initialized");
   targetVel_input_topic = string("/target/mavros/local_position/velocity_local");
+  self_imu_input_topic = prefix + string("/mavros/imu/data");
 
   cout << "[" << group_ns << " Message_synchronizer]: Input topic was set:\n"
                           << yolo_input_topic << endl 
@@ -218,7 +233,8 @@ void Image_process::set_topic(string group_ns)
                           << bbox_input_topic << endl
                           << self_pose_input_topic << endl
                           << self_vel_input_topic << endl
-                          <<targetPose_input_topic << endl
+                          << targetPose_input_topic << endl
+                          << self_imu_input_topic << endl
                           << "==============================================\n";
 
   yolo_output_topic = prefix + string("/synchronizer/yolov7/visualization");
@@ -228,6 +244,7 @@ void Image_process::set_topic(string group_ns)
   self_vel_output_topic = prefix + string("/synchronizer/local_position/velocity_local");
   targetPose_output_topic = string("/target/synchronizer/local_position/pose_initialized");
   targetVel_output_topic = string("/target/synchronizer/local_position/velocity_local");
+  self_imu_output_topic = prefix + string("/synchronizer/imu/data");
 
   cout << "[" << group_ns << " Message_synchronizer]: Output topic was set:\n"
                           << yolo_output_topic << endl 
@@ -236,12 +253,11 @@ void Image_process::set_topic(string group_ns)
                           << self_pose_output_topic << endl
                           << self_vel_output_topic << endl
                           << targetVel_output_topic << endl
+                          << self_imu_output_topic << endl
                           << "===================================================================================================\n\n";
 }
 
 void Image_process::set_bbox_col(int col){bbox_col = col;}
-
-
 
 int main(int argc, char** argv)
 {

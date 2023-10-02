@@ -195,6 +195,7 @@ int main(int argc, char** argv)
 
 	int fusionNum = 2;
 	int state_size = 6;
+	ros::param::get("stateSize", state_size);
 
 	Data_process dp(nh, fusionNum, state_size);
 

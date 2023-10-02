@@ -67,12 +67,14 @@ void HEIF::weightFusionPairs(Eigen::MatrixXf* infoMat, Eigen::VectorXf* infoVec,
 	for(int i = 0; i < groupsNum; i++)
 		weightedInfoVec += weight[i]*infoVec[i];
 
+	/*
 	std::cout << "weight1: " << weight[0] << "\n";
 	std::cout << "weight2: " << weight[1] << "\n";
 	std::cout << "trace1: \n" << infoMat[0] << "\n";
 	std::cout << "trace2: \n" << infoMat[1] << "\n";
 
 	std::cout << "traceSum: " << trace_sum << "\n";
+	*/
 }
 
 void HEIF::CI()
@@ -84,22 +86,20 @@ void HEIF::CI()
 	double weight_1 = weightedOmega_hat.trace()/trace_sum;
 	double weight_2 = weightedS.trace()/trace_sum;
 	
-
+	/*
 	fusedOmega = weight_1*weightedOmega_hat + weight_2*weightedS;
 	fusedXi = weight_1*weightedXi_hat + weight_2*weightedY;
 	fusedX_t = fusedOmega.inverse()*fusedXi;
-	
+	*/
 
-	std::cout << "Omega: \n" << weightedOmega_hat << "\n";
-	std::cout << "S: \n" << weightedS << "\n";
+	//std::cout << "Omega: \n" << weightedOmega_hat << "\n";
+	//std::cout << "S: \n" << weightedS << "\n";
 	//std::cout << "weight_1:" << weight_1 << "\n";
 	//std::cout << "weight_2 " << weight_2 << "\n";
 	
 	fusedOmega = weightedOmega_hat + weightedS;
 	fusedXi = weightedXi_hat + weightedY;
 	fusedX_t = fusedOmega.inverse()*fusedXi;
-	
-	
 	
 }
 
@@ -111,8 +111,8 @@ void HEIF::compare(Eigen::VectorXf targetState_GT)
 	err_p << err(0), err(1), err(2);
 	err_v << err(3), err(4), err(5);
 
-	std::cout << "X_t\n" << fusedX_t << "\n\n";
-	std::cout << "RMS_p: " << err_p.norm() << "\nRMS_v: " << err_v.norm() << "\n\n";
+	std::cout << "[HEIF]: X_t\n" << fusedX_t << "\n\n";
+	std::cout << "[HEIF]: RMS_p: " << err_p.norm() << "\n[HEIF]: RMS_v: " << err_v.norm() << "\n\n";
 }
 
 state_estimation::EIFpairStamped HEIF::getFusedPairs()

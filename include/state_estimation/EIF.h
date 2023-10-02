@@ -47,17 +47,17 @@ private:
     bool consensus;
 
 public:
-	EIF(int x_size, int z_size);
 	EIF(int x_size, int z_size, bool Consensus);
 	~EIF();
-	void predict(double dt);
+	void computePredPairs(double dt);
+	void computeCorrPairs(Eigen::VectorXd z);
 	void correct(Eigen::VectorXd measurement);
 	void predict_fused(double dt, Eigen::MatrixXd Omega, Eigen::VectorXd xi, bool flag);
-	void correct_fused(Eigen::VectorXd z);
 	void set_process_noise(Eigen::MatrixXd matrix);
     void set_measurement_noise(Eigen::MatrixXd matrix);
     void set_intrinsic_matrix(Eigen::MatrixXd matrix);
     void setSelfState(geometry_msgs::PoseStamped P, geometry_msgs::TwistStamped V);
+    void setSelfState(geometry_msgs::PoseStamped P, geometry_msgs::TwistStamped V, Eigen::VectorXd A);
     void compare(Eigen::VectorXd groundTruth);
     Eigen::VectorXd getTargetState();
     void process(double dt, Eigen::VectorXd z, Eigen::MatrixXd fusedOmega, Eigen::VectorXd fusedXi, bool flag);

@@ -10,6 +10,9 @@
 #include <geometry_msgs/TwistStamped.h>
 #include <std_msgs/Header.h>
 #include <state_estimation/EIFpairStamped.h>
+#include <sensor_msgs/Imu.h>
+#include <geometry_msgs/Quaternion.h>
+#include <geometry_msgs/Vector3.h>
 
 #include "EIF.h"
 
@@ -23,6 +26,7 @@ private:
 	ros::Subscriber targetPose_sub;
 	ros::Subscriber targetVel_sub;
 	ros::Subscriber fusedPair_sub;
+	ros::Subscriber self_imu_sub;
 
 	std::string bbox_topic;
 	std::string self_pose_topic;
@@ -33,6 +37,7 @@ private:
 	std::string targetVel_EIF_topic;
 	std::string targetPose_EIF_err_topic;
 	std::string EIFpairs_topic;
+	std::string self_imu_topic;
 
 	int state_size;
 public:
@@ -46,6 +51,7 @@ public:
 
 	geometry_msgs::PoseStamped self_pose;
 	geometry_msgs::TwistStamped self_vel;
+	Eigen::VectorXd self_acc;
 	std_msgs::Header sync_header;
 	state_estimation::EIFpairStamped fusedPair;
 	Eigen::MatrixXd fusedOmega;
@@ -56,11 +62,13 @@ public:
 	bool gotBbox;
 	bool gotSelfPose;
 	bool gotSelfVel;
+	bool gotSelfImu;
 	bool gotFusedPair;
 
 	void bboxes_cb(const std_msgs::Float32MultiArray::ConstPtr& msg);
 	void self_pose_cb(const geometry_msgs::PoseStamped::ConstPtr& msg);
 	void self_vel_cb(const geometry_msgs::TwistStamped::ConstPtr& msg);
+	void self_imu_cb(const sensor_msgs::Imu::ConstPtr& msg);
 	void targetPose_cb(const geometry_msgs::PoseStamped::ConstPtr& msg);
 	void targetVel_cb(const geometry_msgs::TwistStamped::ConstPtr& msg);
 	void fusedPair_cb(const state_estimation::EIFpairStamped::ConstPtr& msg);
@@ -71,7 +79,7 @@ public:
 
 Data_process::Data_process(ros::NodeHandle &nh, std::string group_ns, int stateSize)
 {
-	gotBbox = gotSelfPose = gotSelfVel = false;
+	gotBbox = gotSelfPose = gotSelfVel = gotSelfImu = false;
 	set_topic(group_ns);
 	state_size = stateSize;
 
@@ -81,6 +89,7 @@ Data_process::Data_process(ros::NodeHandle &nh, std::string group_ns, int stateS
 	targetPose_sub = nh.subscribe<geometry_msgs::PoseStamped>(targetPose_topic, 2, &Data_process::targetPose_cb, this);
 	targetVel_sub = nh.subscribe<geometry_msgs::TwistStamped>(targetVel_topic, 2, &Data_process::targetVel_cb, this);
 	fusedPair_sub = nh.subscribe<state_estimation::EIFpairStamped>("/HEIF/fusedPair", 2, &Data_process::fusedPair_cb, this);
+	self_imu_sub = nh.subscribe<sensor_msgs::Imu>(self_imu_topic, 2, &Data_process::self_imu_cb, this);
 
 	targetPose_EIF_pub = nh.advertise<geometry_msgs::PoseStamped>(targetPose_EIF_topic, 1);
 	targetVel_EIF_pub = nh.advertise<geometry_msgs::TwistStamped>(targetVel_EIF_topic, 1);
@@ -108,6 +117,7 @@ void Data_process::set_topic(std::string group_ns)
 	targetVel_EIF_topic = std::string("/") + group_ns + std::string("/EIF/vel");
 	targetPose_EIF_err_topic = std::string("/") + group_ns + std::string("/EIF/pose_err");
 	EIFpairs_topic = std::string("/") + group_ns + std::string("/EIF/fusionPairs");
+	self_imu_topic = std::string("/") + group_ns + std::string("/synchronizer/imu/data");
 }
 
 void Data_process::bboxes_cb(const std_msgs::Float32MultiArray::ConstPtr& msg)
@@ -130,6 +140,20 @@ void Data_process::self_vel_cb(const geometry_msgs::TwistStamped::ConstPtr& msg)
 	if(!gotSelfVel)
 		gotSelfVel = true;
 	self_vel = *msg;
+}
+
+void Data_process::self_imu_cb(const sensor_msgs::Imu::ConstPtr& msg)
+{
+	if(!gotSelfImu)
+		gotSelfImu = true;
+
+	Eigen::Quaterniond q(msg->orientation.w, msg->orientation.x, msg->orientation.y, msg->orientation.z);
+	Eigen::VectorXd acc_b(3);
+	acc_b << msg->linear_acceleration.x, msg->linear_acceleration.y, msg->linear_acceleration.z;
+	self_acc = q*acc_b;
+	self_acc(2) = self_acc(2) - 9.81;
+
+	//std::cout << "self_acc:\n" << self_acc << std::endl;
 }
 
 void Data_process::targetPose_cb(const geometry_msgs::PoseStamped::ConstPtr& msg)
@@ -182,12 +206,16 @@ int main(int argc, char **argv)
     ros::NodeHandle nh;
 
     std::string vehicle;
+    bool consensus;
+    int state_size = 6;
+    int measurement_size = 3;
+    int hz;
     ros::param::get("vehicle", vehicle);
-
-	ros::Rate rate(100);
-
-	int state_size = 6;
-	int measurement_size = 3;
+    ros::param::get("consensus", consensus);
+    ros::param::get("stateSize", state_size);
+    ros::param::get("rate", hz);
+;
+	ros::Rate rate(hz);
 
 	double last_t;
 	double dt;
@@ -205,14 +233,15 @@ int main(int argc, char **argv)
 	printf("[%s EIF]: Fusion state size: %i \n", vehicle.c_str(), state_size);
 	printf("[%s EIF]: Fusion measurement size: %i \n\n", vehicle.c_str(), measurement_size);
 
-	while(ros::ok() && (!dp.gotBbox || !dp.gotSelfPose || !dp.gotSelfVel))
+	while(ros::ok() && (!dp.gotBbox || !dp.gotSelfPose || !dp.gotSelfVel || !dp.gotSelfImu))
 	{
 		//printf("[%s]: Waiting for topics...\n", vehicle.c_str());
 		ros::spinOnce();
 	}
 	printf("\n[%s EIF]: Topics all checked, start calculating EIF\n\n", vehicle.c_str());
 
-	EIF eif(state_size, measurement_size, true);
+	EIF eif(state_size, measurement_size, consensus);
+	printf("\n[%s EIF]: EIF constructed\n\n", vehicle.c_str());
 
 	last_t = ros::Time::now().toSec();
 
@@ -221,7 +250,12 @@ int main(int argc, char **argv)
     	dt = ros::Time::now().toSec() - last_t;
     	last_t = ros::Time::now().toSec();
 
-    	eif.setSelfState(dp.self_pose, dp.self_vel);
+    	if(state_size == 6)
+    		eif.setSelfState(dp.self_pose, dp.self_vel);
+    	else if(state_size == 9)
+    		eif.setSelfState(dp.self_pose, dp.self_vel, dp.self_acc);
+
+
     	measurement << dp.bboxes[0], dp.bboxes[1], dp.bboxes[2];
     	eif.process(dt, measurement, dp.fusedOmega, dp.fusedXi, dp.gotFusedPair);
     	
@@ -230,7 +264,7 @@ int main(int argc, char **argv)
     	getFusionPairs(eif, EIFpairs);
     	dp.EIFpairs_pub.publish(EIFpairs);
 
-    	//eif.compare(dp.targetState_GT);
+    	eif.compare(dp.targetState_GT);
     	/*
     	targetState_EIF = eif.getTargetState();
     	targetPose_EIF_err.header = dp.sync_header;

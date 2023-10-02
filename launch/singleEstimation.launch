@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<launch>
+        <arg name="vehicle_1" default="iris_1"/>
+        <arg name="vehicle_2" default="iris_2"/>
+        <arg name="vehicle_3" default="iris_3"/>
+        <arg name="consensus" default="false"/>
+        <arg name="stateSize" default="6"/>
+        <arg name="rate" default="200"/>
+
+        <group ns="$(arg vehicle_1)">
+                <node name="synchronizer" pkg="state_estimation" type="self_msg_sync" output="screen"></node>
+                <node name="state_estimation" pkg="state_estimation" type="state_estimation" output="screen"></node>
+                <param name="vehicle" value="$(arg vehicle_1)" />
+                <param name="consensus" value="$(arg consensus)"/>
+                <param name="stateSize" value="$(arg stateSize)"/>
+                <param name="rate" value="$(arg rate)"/>
+        </group>
+</launch>
