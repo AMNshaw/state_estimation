@@ -21,8 +21,8 @@ EIF::EIF(int x_size, int z_size, bool Consensus)
 	pre_Omega= 1e-3*Eigen::MatrixXd::Identity(x_size, x_size);
 
 	Omega = 1e-3*Eigen::MatrixXd::Identity(x_size, x_size);
-	Q = 1e-4*Eigen::MatrixXd::Identity(state_size, state_size);
-	R = 9e-4*Eigen::MatrixXd::Identity(measurement_size, measurement_size);
+	Q = 3e-4*Eigen::MatrixXd::Identity(state_size, state_size);
+	R = 7e-4*Eigen::MatrixXd::Identity(measurement_size, measurement_size);
 
 	C = Eigen::MatrixXd::Zero(measurement_size, state_size);
 	C.block(0, 0, measurement_size, measurement_size) = Eigen::MatrixXd::Identity(measurement_size, measurement_size);
@@ -136,17 +136,6 @@ void EIF::process(double dt, Eigen::VectorXd z, Eigen::MatrixXd fusedOmega, Eige
 	}
 
 }
-
-void EIF::compare(Eigen::VectorXd groundTruth)
-{
-	Eigen::VectorXd E = groundTruth - X_t;
-	Eigen::VectorXd E_p(3), E_v(3);
-	E_p << E(0), E(1), E(2);
-	E_v << E(3), E(4), E(5);
-
-	std::cout << "X_t: \n" << X_t << "\n\n";
-	std::cout << "RMS_p: " << E_p.norm() << "\nRMS_v: " << E_v.norm() << "\n\n";
-} 
 
 Eigen::VectorXd EIF::getTargetState(){return X_t;}
 

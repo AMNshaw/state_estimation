@@ -62,6 +62,7 @@ find_package(PCL REQUIRED)
    FILES
    Int32MultiArrayStamped.msg  
    EIFpairStamped.msg
+   RMSE.msg
  )
 
 ## Generate services in the 'srv' folder
@@ -173,7 +174,7 @@ target_link_libraries(self_msg_sync
 target_include_directories(self_msg_sync PRIVATE
   include/${PROJECT_NAME}/ ) 
 
-# consensus_state_estimation
+#consensus_state_estimation
 add_executable(consensus_state_estimation 
   node/consensus_state_estimation.cpp
   )

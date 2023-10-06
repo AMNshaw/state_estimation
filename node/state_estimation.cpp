@@ -10,6 +10,7 @@
 #include <geometry_msgs/TwistStamped.h>
 #include <std_msgs/Header.h>
 #include <state_estimation/EIFpairStamped.h>
+#include <state_estimation/RMSE.h>
 #include <sensor_msgs/Imu.h>
 #include <geometry_msgs/Quaternion.h>
 #include <geometry_msgs/Vector3.h>
@@ -38,6 +39,7 @@ private:
 	std::string targetPose_EIF_err_topic;
 	std::string EIFpairs_topic;
 	std::string self_imu_topic;
+	std::string RMSE_topic;
 
 	int state_size;
 public:
@@ -48,6 +50,7 @@ public:
 	ros::Publisher targetVel_EIF_pub;
 	ros::Publisher targetPose_EIF_err_pub;
 	ros::Publisher EIFpairs_pub;
+	ros::Publisher RMSE_pub;
 
 	geometry_msgs::PoseStamped self_pose;
 	geometry_msgs::TwistStamped self_vel;
@@ -74,6 +77,7 @@ public:
 	void fusedPair_cb(const state_estimation::EIFpairStamped::ConstPtr& msg);
 
 	void set_topic(std::string group_ns);
+	void compare(Eigen::VectorXd X_t);
 
 };
 
@@ -94,6 +98,7 @@ Data_process::Data_process(ros::NodeHandle &nh, std::string group_ns, int stateS
 	targetPose_EIF_pub = nh.advertise<geometry_msgs::PoseStamped>(targetPose_EIF_topic, 1);
 	targetVel_EIF_pub = nh.advertise<geometry_msgs::TwistStamped>(targetVel_EIF_topic, 1);
 	targetPose_EIF_err_pub = nh.advertise<geometry_msgs::PoseStamped>(targetPose_EIF_err_topic, 1);
+	RMSE_pub = nh.advertise<state_estimation::RMSE>(RMSE_topic, 1);
 
 	EIFpairs_pub = nh.advertise<state_estimation::EIFpairStamped>(EIFpairs_topic, 1);
 
@@ -118,6 +123,7 @@ void Data_process::set_topic(std::string group_ns)
 	targetPose_EIF_err_topic = std::string("/") + group_ns + std::string("/EIF/pose_err");
 	EIFpairs_topic = std::string("/") + group_ns + std::string("/EIF/fusionPairs");
 	self_imu_topic = std::string("/") + group_ns + std::string("/synchronizer/imu/data");
+	RMSE_topic = std::string("/") + group_ns + std::string("/EIF/RMSE");
 }
 
 void Data_process::bboxes_cb(const std_msgs::Float32MultiArray::ConstPtr& msg)
@@ -200,6 +206,50 @@ void Data_process::fusedPair_cb(const state_estimation::EIFpairStamped::ConstPtr
 	fusedXi = fusedInfoVec.cast<double>();
 }
 
+void Data_process::compare(Eigen::VectorXd X_t)
+{
+	Eigen::VectorXd E = targetState_GT - X_t;
+	Eigen::VectorXd E_p(3), E_v(3);
+	state_estimation::RMSE RMSE_data;
+	E_p << E(0), E(1), E(2);
+	E_v << E(3), E(4), E(5);
+
+	std::cout << "X_t: \n" << X_t << "\n\n";
+	std::cout << "RMS_p: " << E_p.norm() << "\nRMS_v: " << E_v.norm() << "\n\n";
+
+	
+	RMSE_data.header = sync_header;
+	RMSE_data.RMSE_p = E_p.norm();
+	RMSE_data.RMSE_v = E_v.norm();
+	RMSE_pub.publish(RMSE_data);
+}
+
+int extractUAVID(std::string vehicle)
+{
+	int last_digit_index = -1;
+	int last_digit = -1;
+    for (int i = vehicle.length() - 1; i >= 0; i--) {
+        if (std::isdigit(vehicle[i])) {
+            last_digit_index = i;
+            break;
+        }
+    }
+
+    // Check if a digit was found and extract it
+    if (last_digit_index != -1)
+    {
+    	last_digit = std::stoi(vehicle.substr(last_digit_index));
+    	return last_digit;
+    } 
+        
+    else
+    {
+    	std::cout << "No digit found in the string" << std::endl;
+    	return -1;
+    }
+}
+
+
 int main(int argc, char **argv)
 {
 	ros::init(argc, argv, "state_estimation");
@@ -210,11 +260,12 @@ int main(int argc, char **argv)
     int state_size = 6;
     int measurement_size = 3;
     int hz;
+
     ros::param::get("vehicle", vehicle);
     ros::param::get("consensus", consensus);
     ros::param::get("stateSize", state_size);
     ros::param::get("rate", hz);
-;
+;	int ID = extractUAVID(vehicle);
 	ros::Rate rate(hz);
 
 	double last_t;
@@ -259,12 +310,18 @@ int main(int argc, char **argv)
     	measurement << dp.bboxes[0], dp.bboxes[1], dp.bboxes[2];
     	eif.process(dt, measurement, dp.fusedOmega, dp.fusedXi, dp.gotFusedPair);
     	
+    	
     	EIFpairs.header = dp.sync_header;
+    	EIFpairs.id = ID;
     	EIFpairs.stateSize = state_size;
     	getFusionPairs(eif, EIFpairs);
-    	dp.EIFpairs_pub.publish(EIFpairs);
-
-    	eif.compare(dp.targetState_GT);
+    	if(consensus == true)
+    		dp.EIFpairs_pub.publish(EIFpairs);
+    	else
+    		dp.compare(eif.getTargetState());
+    	
+    	
+    	
     	/*
     	targetState_EIF = eif.getTargetState();
     	targetPose_EIF_err.header = dp.sync_header;

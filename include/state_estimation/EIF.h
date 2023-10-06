@@ -58,7 +58,6 @@ public:
     void set_intrinsic_matrix(Eigen::MatrixXd matrix);
     void setSelfState(geometry_msgs::PoseStamped P, geometry_msgs::TwistStamped V);
     void setSelfState(geometry_msgs::PoseStamped P, geometry_msgs::TwistStamped V, Eigen::VectorXd A);
-    void compare(Eigen::VectorXd groundTruth);
     Eigen::VectorXd getTargetState();
     void process(double dt, Eigen::VectorXd z, Eigen::MatrixXd fusedOmega, Eigen::VectorXd fusedXi, bool flag);
 

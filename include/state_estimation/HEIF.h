@@ -31,7 +31,7 @@ public:
 	void covarianceIntercection(Eigen::MatrixXd infoMat, Eigen::VectorXd infoVec);
 	void weightFusionPairs(Eigen::MatrixXf* infoMat, Eigen::VectorXf* infoVec, Eigen::MatrixXf& weightedInfoMat, Eigen::VectorXf& weightedInfoVec);
 	void CI();
-	void compare(Eigen::VectorXf targetState_GT);
+	Eigen::VectorXf getTargetState();
 	state_estimation::EIFpairStamped getFusedPairs();
 };
 

@@ -25,7 +25,7 @@ HEIF::HEIF(int num, int stateSize)
 	weightedS.setZero(state_size, state_size);
 	weightedY.setZero(state_size);
 
-	std::cout << "DEIF constructed" << "\n";
+
 }
 
 HEIF::~HEIF()
@@ -42,12 +42,16 @@ void HEIF::inputFusionPairs(state_estimation::EIFpairStamped* fusionPairs_Vec)
 	{
 		Eigen::Map<Eigen::MatrixXf> predInfoMat(fusionPairs_Vec[i].predInfoMat.data(), state_size, state_size);
 		Omega_hat[i] = predInfoMat;
+		//std::cout << "check1" << std::endl;
 		Eigen::Map<Eigen::VectorXf> predInfoVec(fusionPairs_Vec[i].predInfoVec.data(), state_size);
 		xi_hat[i] = predInfoVec;
+		//std::cout << "check2" << std::endl;
 		Eigen::Map<Eigen::MatrixXf> corrInfoMat(fusionPairs_Vec[i].corrInfoMat.data(), state_size, state_size);
 		s[i] = corrInfoMat;
+		//std::cout << "check3" << std::endl;
 		Eigen::Map<Eigen::VectorXf> corrInfoVec(fusionPairs_Vec[i].corrInfoVec.data(), state_size);
 		y[i] = corrInfoVec;
+		//std::cout << "check4" << std::endl;
 	}
 }
 
@@ -100,19 +104,6 @@ void HEIF::CI()
 	fusedOmega = weightedOmega_hat + weightedS;
 	fusedXi = weightedXi_hat + weightedY;
 	fusedX_t = fusedOmega.inverse()*fusedXi;
-	
-}
-
-void HEIF::compare(Eigen::VectorXf targetState_GT)
-{
-	Eigen::VectorXf err = targetState_GT - fusedX_t;
-	Eigen::VectorXf err_p(state_size/2);
-	Eigen::VectorXf err_v(state_size/2);
-	err_p << err(0), err(1), err(2);
-	err_v << err(3), err(4), err(5);
-
-	std::cout << "[HEIF]: X_t\n" << fusedX_t << "\n\n";
-	std::cout << "[HEIF]: RMS_p: " << err_p.norm() << "\n[HEIF]: RMS_v: " << err_v.norm() << "\n\n";
 }
 
 state_estimation::EIFpairStamped HEIF::getFusedPairs()
@@ -126,3 +117,5 @@ state_estimation::EIFpairStamped HEIF::getFusedPairs()
 	fusionPairs_Vec.fusedInfoVec = xi_vec;
 	return fusionPairs_Vec;
 }
+
+Eigen::VectorXf HEIF::getTargetState(){return fusedX_t;}

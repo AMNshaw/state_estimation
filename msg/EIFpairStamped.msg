@@ -6,3 +6,4 @@ float32[] corrInfoVec
 float32[] fusedInfoMat 
 float32[] fusedInfoVec
 int32 stateSize
+int32 id

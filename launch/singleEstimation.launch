@@ -7,10 +7,10 @@
         <arg name="stateSize" default="6"/>
         <arg name="rate" default="200"/>
 
-        <group ns="$(arg vehicle_1)">
+        <group ns="$(arg vehicle_2)">
                 <node name="synchronizer" pkg="state_estimation" type="self_msg_sync" output="screen"></node>
                 <node name="state_estimation" pkg="state_estimation" type="state_estimation" output="screen"></node>
-                <param name="vehicle" value="$(arg vehicle_1)" />
+                <param name="vehicle" value="$(arg vehicle_2)" />
                 <param name="consensus" value="$(arg consensus)"/>
                 <param name="stateSize" value="$(arg stateSize)"/>
                 <param name="rate" value="$(arg rate)"/>
