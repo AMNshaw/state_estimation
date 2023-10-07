@@ -12,15 +12,9 @@
 #include <state_estimation/EIFpairStamped.h>
 #include <state_estimation/RMSE.h>
 
-#include <message_filters/subscriber.h>
-#include <message_filters/synchronizer.h>
-#include <message_filters/sync_policies/approximate_time.h>
-#include <message_filters/sync_policies/exact_time.h>
-
 #include "EIF.h"
 #include "HEIF.h"
 
-using namespace message_filters;
 using namespace std;
 
 
@@ -52,9 +46,13 @@ private:
 	int state_size;
 	double* time;
 	double min_time;
+	
 
 	HEIF heif;
 public:
+
+	bool *topic_check;
+
 	Data_process(ros::NodeHandle& nh, int num, int stateSize);
 	~Data_process();
 
@@ -81,6 +79,9 @@ Data_process::Data_process(ros::NodeHandle& nh, int num, int stateSize) : heif(n
 	fusionPairsQue = new deque<state_estimation::EIFpairStamped>[fusionNum];
 	fusionPair_sub = new ros::Subscriber[fusionNum];
 	time = new double[fusionNum];
+	topic_check = new bool[fusionNum];
+	for(int i=0; i < fusionNum; i++)
+		topic_check[i] = false;
 
 	for(int i = 0; i < fusionNum; i++)
 		fusionPair_sub[i] = nh.subscribe<state_estimation::EIFpairStamped>(fusionPair_topics[i], 10, &Data_process::fusionPair_sync_cb, this);
@@ -98,8 +99,9 @@ Data_process::~Data_process()
 {
 	delete[] fusionPairs;
 	delete[] fusionPair_sub;
-	delete[] time;
 	delete[] fusionPairsQue;
+	delete[] time;
+	delete[] topic_check;
 }
 
 void Data_process::set_topic()
@@ -113,9 +115,12 @@ void Data_process::set_topic()
 void Data_process::fusionPair_sync_cb(const state_estimation::EIFpairStamped::ConstPtr& ori_fusionPairs)
 {
 	int id = ori_fusionPairs->id - 1;
+	if(!topic_check[id])
+		topic_check[id] = true;
+
 	fusionPairsQue[id].push_front(*ori_fusionPairs);
-	if(fusionPairsQue[id].size() > 200)
-		fusionPairsQue[id].pop_back();
+	/*if(fusionPairsQue[id].size() > 100)
+		fusionPairsQue[id].pop_back()*/;
 	time[id] = fusionPairsQue[id].front().header.stamp.toSec();
 	min_time = time[0];
 	for(int i = 0; i < fusionNum; i++)
@@ -131,23 +136,22 @@ void Data_process::sync_process()
 
 	for(int i =0; i < fusionNum; i++)
 	{
+		//cout << "time: " << fusionPairsQue[i].front().header.stamp.toSec() << "\npop one" << endl;
+		
 		while(time[i] - min_time >= 0.003)
 		{
 			time[i] = fusionPairsQue[i].front().header.stamp.toSec();
 			if(fusionPairsQue[i].size() > 1)
 				fusionPairsQue[i].pop_front();
-			//cout << "time: " << fusionPairsQue[i].front().header.stamp.toSec() << "\npop one" << endl;
 		}
+		
 		fusionPairs[i] = fusionPairsQue[i].front();
-		//std::cout << "fusionPair[" << i << "] time: " << fusionPairs[i].header.stamp.toSec() << "\n\n";
-		//std::cout << "fusionPair[" << i << "] : " << fusionPairs[i]<< "\n\n";
 	}
 }
 
 void Data_process::fusion()
 {
 	heif.inputFusionPairs(fusionPairs);
-	//std::cout << "checked" << std::endl;
 	heif.CI();
 	fusedPair_pub.publish(heif.getFusedPairs());
 	compare(heif.getTargetState());
@@ -155,6 +159,7 @@ void Data_process::fusion()
 
 void Data_process::targetPose_cb(const geometry_msgs::PoseStamped::ConstPtr& ori_targetPose)
 {
+	sync_header = ori_targetPose->header;
 	targetState_GT(0) = ori_targetPose->pose.position.x;
 	targetState_GT(1) = ori_targetPose->pose.position.y;
 	targetState_GT(2) = ori_targetPose->pose.position.z;
@@ -190,14 +195,28 @@ int main(int argc, char** argv)
 {
 	ros::init(argc, argv, "msg_synchronizer");
 	ros::NodeHandle nh;
-	ros::Rate rate(150);
-
+	
+	int hz = 100;
 	int fusionNum = 2;
 	int state_size = 6;
 	ros::param::get("stateSize", state_size);
 	ros::param::get("fusionNum", fusionNum);
+	ros::param::get("rate", hz);
 
 	Data_process dp(nh, fusionNum, state_size);
+
+	ros::Rate rate(hz);
+	while(ros::ok())
+	{
+		bool topic_all_check = true;
+		for(int i = 0; i< fusionNum; i++)
+			if(dp.topic_check[i] == false)
+				topic_all_check == false;
+		if(topic_all_check)
+			break;
+		ros::spinOnce();
+		rate.sleep();
+	}
 
 	for(int i = 0; i < 100; i++)
 	{
