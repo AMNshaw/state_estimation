@@ -141,6 +141,12 @@ include_directories(
 #   src/${PROJECT_NAME}/state_estimation.cpp
 # )
 
+add_library(Mav
+   src/Mav.cpp
+)
+target_include_directories(Mav PRIVATE
+  include/${PROJECT_NAME}/ )
+
 add_library(EIF
    src/EIF.cpp
 )
@@ -158,6 +164,7 @@ add_executable(state_estimation
   node/state_estimation.cpp
   )
 target_link_libraries(state_estimation
+  Mav
   EIF
   ${catkin_LIBRARIES} )
 target_include_directories(state_estimation PRIVATE

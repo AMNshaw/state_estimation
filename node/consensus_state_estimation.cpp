@@ -83,8 +83,9 @@ Data_process::Data_process(ros::NodeHandle& nh, int num, int stateSize) : heif(n
 	for(int i=0; i < fusionNum; i++)
 		topic_check[i] = false;
 
-	for(int i = 0; i < fusionNum; i++)
+	for(int i=0; i < fusionNum; i++)
 		fusionPair_sub[i] = nh.subscribe<state_estimation::EIFpairStamped>(fusionPair_topics[i], 10, &Data_process::fusionPair_sync_cb, this);
+
 	targetPose_sub = nh.subscribe<geometry_msgs::PoseStamped>(targetPose_input_topic, 1, &Data_process::targetPose_cb, this);
 	targetVel_sub = nh.subscribe<geometry_msgs::TwistStamped>(targetVel_input_topic, 1, &Data_process::targetVel_cb, this);
 
@@ -118,9 +119,8 @@ void Data_process::fusionPair_sync_cb(const state_estimation::EIFpairStamped::Co
 	if(!topic_check[id])
 		topic_check[id] = true;
 
+	
 	fusionPairsQue[id].push_front(*ori_fusionPairs);
-	/*if(fusionPairsQue[id].size() > 100)
-		fusionPairsQue[id].pop_back()*/;
 	time[id] = fusionPairsQue[id].front().header.stamp.toSec();
 	min_time = time[0];
 	for(int i = 0; i < fusionNum; i++)
@@ -128,21 +128,21 @@ void Data_process::fusionPair_sync_cb(const state_estimation::EIFpairStamped::Co
 		if(time[i] < min_time)
 			min_time = time[i];
 	}
+	//fusionPairs[id] = *ori_fusionPairs;
 }
 
 void Data_process::sync_process()
 {
-	//std::cout<< "min_time: " << min_time << "\n\n";
-
 	for(int i =0; i < fusionNum; i++)
-	{
-		//cout << "time: " << fusionPairsQue[i].front().header.stamp.toSec() << "\npop one" << endl;
+	{	
 		
-		while(time[i] - min_time >= 0.003)
+		while(time[i] - min_time >= 0.005)
 		{
 			time[i] = fusionPairsQue[i].front().header.stamp.toSec();
 			if(fusionPairsQue[i].size() > 1)
+			{
 				fusionPairsQue[i].pop_front();
+			}
 		}
 		
 		fusionPairs[i] = fusionPairsQue[i].front();
@@ -154,7 +154,7 @@ void Data_process::fusion()
 	heif.inputFusionPairs(fusionPairs);
 	heif.CI();
 	fusedPair_pub.publish(heif.getFusedPairs());
-	compare(heif.getTargetState());
+	//compare(heif.getTargetState());
 }
 
 void Data_process::targetPose_cb(const geometry_msgs::PoseStamped::ConstPtr& ori_targetPose)

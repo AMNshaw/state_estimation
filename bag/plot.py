@@ -2,13 +2,13 @@ import rosbag
 import matplotlib.pyplot as plt
 
 # Open the ROS Bag File
-bag = rosbag.Bag('EIF.bag')
+bag = rosbag.Bag('/home/ncrl/gazebo_sim_ws/src/state_estimation/bag/EIF.bag')
 
 # Extract Data
 timestamps = []
 values = []
 
-for topic, msg, t in bag.read_messages(topics=['/iris_1/EIF/RMSE']):
+for topic, msg, t in bag.read_messages(topics=['/iris_2/EIF/RMSE']):
     # Extract relevant data from the message
     timestamp = msg.header.stamp.to_sec()  # Convert ROS time to seconds
     value = msg.RMSE_p  # Modify this line to extract the specific data you need
@@ -36,7 +36,7 @@ plt.show()
 
 
 
-bag = rosbag.Bag('HEIF.bag')
+bag = rosbag.Bag('/home/ncrl/gazebo_sim_ws/src/state_estimation/bag/HEIF.bag')
 
 # Extract Data
 timestamps = []
