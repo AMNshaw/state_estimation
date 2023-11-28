@@ -149,6 +149,8 @@ target_include_directories(Mav PRIVATE
 
 add_library(EIF
    src/EIF.cpp
+   src/TEIF.cpp
+   src/REIF.cpp
 )
 target_include_directories(EIF PRIVATE
   include/${PROJECT_NAME}/ )
