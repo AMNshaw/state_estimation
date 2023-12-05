@@ -11,7 +11,7 @@ public:
     ~robots_EIF();
     void process(double delta_t);
     void computePredPairs(double delta_t);
-    void computeCorrPairs();
+    void computeCorrPairs(double delta_t);
     void setData(MAV_eigen* MAVs);
     EIF_data* getRbsData();
 };

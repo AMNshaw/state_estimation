@@ -6,6 +6,15 @@ private:
 
     int target_state_size;
 	int target_measurement_size;
+
+    float fx;
+	float fy;
+	float cx;
+	float cy;
+    float X;
+    float Y;
+    float Z;
+
     EIF_data T;
     Eigen::MatrixXf Intrinsic;
     Eigen::Vector3f boundingBox;

@@ -27,6 +27,7 @@ private:
 	ros::Subscriber targetPose_sub;
 	ros::Subscriber targetVel_sub;
 	ros::Subscriber fusedPair_sub;
+	
 
 	std::string bbox_topic;
 	std::string targetPose_topic;
@@ -109,8 +110,8 @@ void Data_process::set_topic(std::string vehicle, int id)
 	EIFpairs_topic = std::string("/") + vehicle + std::string("_") + std::to_string(id) + std::string("/EIF/fusionPairs");
 	RMSE_topic = std::string("/") + vehicle + std::string("_") + std::to_string(id) + std::string("/EIF/RMSE");
 
-	targetPose_topic = std::string("/target/mavros/local_position/pose_initialized");
-	targetVel_topic = std::string("/target/mavros/local_position/velocity_local");
+	targetPose_topic = std::string("/iris_3/mavros/local_position/pose_initialized");
+	targetVel_topic = std::string("/iris_3/mavros/local_position/velocity_local");
 }
 
 void Data_process::ros2Eigen(MAV_eigen* Mavs_eigen, int mavNum)
@@ -201,6 +202,7 @@ void Data_process::compare(Eigen::VectorXf X_t)
 	E_v << E(3), E(4), E(5);
 
 	std::cout << "X_t: \n" << X_t << "\n\n";
+	std::cout << "targetState_GT: \n" << targetState_GT << "\n\n";
 	std::cout << "RMS_p: " << E_p.norm() << "\nRMS_v: " << E_v.norm() << "\n\n";
 
 	RMSE_data.header = sync_header;
@@ -282,22 +284,21 @@ int main(int argc, char **argv)
 	//printf("\n[%s EIF]: EIF constructed\n\n", vehicle.c_str());
 
 	
-	last_t = ros::Time::now().toSec();
-	dt = ros::Time::now().toSec() - last_t;
+	
     last_t = ros::Time::now().toSec();
-
-	
-
-	
+	dt = 0.001;
     while(ros::ok())
     {
-    	dt = ros::Time::now().toSec() - last_t;
-    	last_t = ros::Time::now().toSec();
+		
 
 		dp.ros2Eigen(Mavs_eigen, mavNum);
 		Reif.setData(Mavs_eigen);
+		Teif.setData(Mavs_eigen, dp.bboxes_eigen);
 		Reif.computePredPairs(dt);
-		Reif.computeCorrPairs();
+		Reif.computeCorrPairs(dt);
+		dp.compare(Reif.getRbsData()[2].X);
+		//Teif.computePredPairs(dt, Reif.getRbsData());
+		//Teif.computeCorrPairs();
 		
     	// eif.process(dt, measurement, dp.fusedOmega, dp.fusedXi, dp.gotFusedPair);
     	// EIFpairs.header = dp.sync_header;
@@ -310,7 +311,9 @@ int main(int argc, char **argv)
 		// }
     	// else
     	// 	dp.compare(eif.getTargetState());
-    	
+
+    	dt = ros::Time::now().toSec() - last_t;
+    	last_t = ros::Time::now().toSec();
 		
 		rate.sleep();
     	ros::spinOnce();
