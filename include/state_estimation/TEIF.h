@@ -19,6 +19,7 @@ private:
     Eigen::MatrixXf Intrinsic;
     Eigen::Vector3f boundingBox;
 
+    Eigen::VectorXf prevXi;
 
 public:
     target_EIF(int selfPointer, int MavNum, bool est_target_acc);
@@ -26,4 +27,7 @@ public:
     void computePredPairs(double delta_t, EIF_data* Rbs);
     void computeCorrPairs();
     void setData(MAV_eigen* MAVs, Eigen::Vector3f bBox);
+    void setFusedPairs(Eigen::MatrixXf fusedOmega, Eigen::VectorXf fusedXi);
+
+    EIF_data getTgtData();
 };

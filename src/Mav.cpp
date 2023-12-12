@@ -1,6 +1,6 @@
 #include "Mav.h"
 
-int MAV::self_pointer = 0;
+int MAV::self_index = 0;
 
 MAV::MAV(){}
 

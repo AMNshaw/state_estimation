@@ -189,7 +189,8 @@ add_executable(consensus_state_estimation
   )
 target_link_libraries(consensus_state_estimation
   ${catkin_LIBRARIES} 
-  HEIF)
+  HEIF
+  EIF)
 target_include_directories(consensus_state_estimation PRIVATE
   include/${PROJECT_NAME}/ ) 
 

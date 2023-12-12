@@ -1,10 +1,9 @@
-
 #include "REIF.h"
 
 /////////////////////////////////////////////////////////// robots EIF ///////////////////////////////////////////////////////////
 robots_EIF::robots_EIF(int selfPointer, int MavNum) : EIF(selfPointer, MavNum)
 {
-	robots_state_size = 6;
+	robots_state_size = 9;
 	robots_measurement_size = 6;
 
 	Rbs = new EIF_data[mavNum];
@@ -14,7 +13,7 @@ robots_EIF::robots_EIF(int selfPointer, int MavNum) : EIF(selfPointer, MavNum)
 }
 robots_EIF::~robots_EIF()
 {
-	delete Rbs;
+	delete[] Rbs;
 }
 
 void robots_EIF::setData(MAV_eigen* MAVs)
@@ -35,24 +34,15 @@ void robots_EIF::computePredPairs(double delta_t)
 	{
 		if(i!=self_pointer)
 		{
-			/*
-			Eigen::VectorXf rcj_ci = Rbs[i].X.segment(0, 3) - Mavs_curr[self_pointer].r_c;
-			Rbs[i].X_hat.segment(0, 3) = Mavs_curr[self_pointer].r_c + rcj_ci
-			+ R_w2c.inverse()*(Rbs[i].X.segment(3, 3) - Mavs_last[self_pointer].v
-			- skew(Mavs_last[self_pointer].omega_c)*R_w2c*rcj_ci)*dt;
-			*/
-			Rbs[i].X_hat.segment(0, 3) = Rbs[i].X.segment(0, 3) + Rbs[i].X.segment(3, 3)*dt;
-			Rbs[i].X_hat.segment(3, 3) = Rbs[i].X.segment(3, 3);
-
-			//Rbs[i].F.block(0, 0, 3, 3) = Eigen::Matrix3f::Identity(3, 3) - 2*R_w2c.inverse()*skew(Mavs_last[self_pointer].omega_c)*R_w2c*dt;
-			Rbs[i].F.block(0, 0, 3, 3) = Eigen::Matrix3f::Identity(3, 3);
+			Rbs[i].F.setIdentity();
 			Rbs[i].F.block(0, 3, 3, 3) = Eigen::Matrix3f::Identity(3, 3)*dt;
-			Rbs[i].F.block(3, 3, 3, 3) = Eigen::Matrix3f::Identity(3, 3);
+			Rbs[i].F.block(0, 6, 3, 3) = 1/2*Eigen::Matrix3f::Identity(3, 3)*dt*dt;
+			Rbs[i].F.block(3, 6, 3, 3) = Eigen::Matrix3f::Identity(3, 3)*dt;
 
+			Rbs[i].X_hat = Rbs[i].F*Rbs[i].X;
 			Rbs[i].Omega_hat = (Rbs[i].F*Rbs[i].Omega.inverse()*Rbs[i].F.transpose() + Q).inverse();
 			Rbs[i].xi_hat = Rbs[i].Omega_hat*Rbs[i].X_hat;
 		}
-		
 	}
 }
 
@@ -88,7 +78,5 @@ void robots_EIF::computeCorrPairs(double delta_t)
 			Rbs[i].X = Rbs[i].Omega.inverse()*Rbs[i].xi;
 			Rbs[i].pre_z = Rbs[i].z;
 		}	
-		
 	}
-	//std::cout << "x: "<< std::endl << Rbs[1].X << std::endl;
 }

@@ -53,7 +53,7 @@ public:
     bool vel_init;
     bool imu_init;
 
-    static int self_pointer;
+    static int self_index;
 };
 
 #endif

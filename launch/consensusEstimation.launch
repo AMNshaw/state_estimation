@@ -1,38 +1,34 @@
 <?xml version="1.0"?>
 <launch>
-        <arg name="vehicle_1" default="iris_1"/>
-        <arg name="vehicle_2" default="iris_2"/>
-        <arg name="vehicle_3" default="iris_3"/>
+        <arg name="vehicle" default="iris"/>
         <arg name="consensus" default="true"/>
-        <arg name="stateSize" default="6"/>
         <arg name="rate" default="200"/>
         <arg name="fusionNum" default="2"/>
+        <arg name="stateSize" default="9"/>
 
-        <group ns="$(arg vehicle_1)">
-                <node name="synchronizer" pkg="state_estimation" type="self_msg_sync" output="screen"></node>
-                <node name="state_estimation" pkg="state_estimation" type="state_estimation" output="screen"></node>
-                <param name="vehicle" value="$(arg vehicle_1)" />
-                <param name="consensus" value="$(arg consensus)"/>
-                <param name="stateSize" value="$(arg stateSize)"/>
+        <group ns="$(arg vehicle)_1">
+                <param name="ID" value="1" />
+                <param name="vehicle" value="$(arg vehicle)" />
                 <param name="rate" value="$(arg rate)"/>
+                <param name="consensus" value="$(arg consensus)"/>
+
+                <node name="synchronizer" pkg="state_estimation" type="self_msg_sync" output="screen"></node>
+                <node name="state_estimation" pkg="state_estimation" type="state_estimation" ></node>
         </group>
-        <group ns="$(arg vehicle_2)">
-                <node name="synchronizer" pkg="state_estimation" type="self_msg_sync" output="screen"></node>
-                <node name="state_estimation" pkg="state_estimation" type="state_estimation"></node>
-                <param name="vehicle" value="$(arg vehicle_2)" /> 
-                <param name="consensus" value="$(arg consensus)"/>
-                <param name="stateSize" value="$(arg stateSize)"/>
+        <group ns="$(arg vehicle)_2">
+                <param name="ID" value="2" />
+                <param name="vehicle" value="$(arg vehicle)" />
                 <param name="rate" value="$(arg rate)"/>
+                <param name="consensus" value="$(arg consensus)"/>
+
+                <node name="synchronizer" pkg="state_estimation" type="self_msg_sync" ></node>
+                <node name="state_estimation" pkg="state_estimation" type="state_estimation"></node>
         </group>
-        <!--group ns="$(arg vehicle_3)">
-                <node name="synchronizer" pkg="state_estimation" type="self_msg_sync" output="screen"></node>
-                <node name="state_estimation" pkg="state_estimation" type="state_estimation"></node>
-                <param name="vehicle" value="$(arg vehicle_3)" /> 
-                <param name="consensus" value="$(arg consensus)"/>
-                <param name="stateSize" value="$(arg stateSize)"/>
-                <param name="rate" value="$(arg rate)"/>
-        </group-->
-        <node name="HEIF" pkg="state_estimation" type="consensus_state_estimation" output="screen"></node>
-        <param name="stateSize" value="$(arg stateSize)"/>
-        <param name="fusionNum" value="$(arg fusionNum)"/>
+
+        <node name="consensus_state_estimation" pkg="state_estimation" type="consensus_state_estimation" output="screen">
+                <param name="fusionNum" value="$(arg fusionNum)" />
+                <param name="stateSize" value="$(arg stateSize)" />
+                <param name="rate" value="$(arg rate)" />
+        </node>
+        
 </launch>

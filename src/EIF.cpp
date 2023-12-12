@@ -21,8 +21,8 @@ EIF::EIF(int selfPointer, int MavNum)
 
 EIF::~EIF()
 {
-	delete Mavs_curr;
-	delete Mavs_last;
+	delete[] Mavs_curr;
+	delete[] Mavs_last;
 }
 
 void EIF::EIF_data_init(int x_size, int z_size, EIF_data* est_object)
@@ -41,10 +41,10 @@ void EIF::EIF_data_init(int x_size, int z_size, EIF_data* est_object)
 	est_object->F.setZero(x_size, x_size);
 	est_object->H.setZero(z_size, x_size);
 	est_object->s.setZero(x_size, x_size);
-	est_object->Omega = 1e-3*Eigen::MatrixXf::Identity(x_size, x_size);
+	est_object->Omega = 1e3*Eigen::MatrixXf::Identity(x_size, x_size);
 	
-	Q = 3e-4*Eigen::MatrixXf::Identity(x_size, x_size);
-	R = 7e-4*Eigen::MatrixXf::Identity(z_size, z_size);
+	Q = 7e-4*Eigen::MatrixXf::Identity(x_size, x_size);
+	R = 1e-4*Eigen::MatrixXf::Identity(z_size, z_size);
 }
 
 void EIF::set_process_noise(Eigen::MatrixXf matrix){Q = matrix;}
@@ -70,31 +70,4 @@ void EIF::computePredPairs()
 void EIF::computeCorrPairs()
 {
 	Mavs_last = Mavs_curr;
-}
-
-void EIF::correct(Eigen::MatrixXf z)
-{
-	// computeCorrPairs(z);
-	// Omega = (Omega_hat + s);
-	// xi = xi_hat + y;
-	// X_t = Omega.inverse()*xi;
-}
-
-void EIF::predict_fused(double dt, Eigen::MatrixXf fusedOmega, Eigen::MatrixXf fusedXi, bool flag)
-{
-	// if(flag)
-	// {
-	// 	Omega = fusedOmega;
-	// 	xi = fusedXi;
-	// 	X_t = Omega.inverse()*xi;
-	// 	E = X_t - X_b_last;
-	// }
-	// computePredPairs(dt);
-}
-
-void EIF::getPredictionPairs(Eigen::MatrixXf* infoMat, Eigen::MatrixXf* infoVec)
-{
-}
-void EIF::getCorrectionPairs(Eigen::MatrixXf* infoMat, Eigen::MatrixXf* infoVec)
-{
 }

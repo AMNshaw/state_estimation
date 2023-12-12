@@ -52,6 +52,8 @@ protected:
     Eigen::VectorXf t_b2c;
     Eigen::MatrixXf R_b2c;
 
+    Eigen::MatrixXf fusedOmega;
+    Eigen::VectorXf fusedXi;
     
 public:
 	EIF(int selfPointer, int MavNum);
@@ -64,14 +66,10 @@ public:
     virtual void setData();
 	virtual void computePredPairs();
 	virtual void computeCorrPairs();
-	void correct(Eigen::MatrixXf measurement);
-	void predict_fused(double dt, Eigen::MatrixXf Omega, Eigen::MatrixXf xi, bool flag);
 	void set_process_noise(Eigen::MatrixXf matrix);
     void set_measurement_noise(Eigen::MatrixXf matrix);
     
     Eigen::MatrixXf getTargetState();
-    void getPredictionPairs(Eigen::MatrixXf* infoMat, Eigen::MatrixXf* infoVec);
-    void getCorrectionPairs(Eigen::MatrixXf* infoMat, Eigen::MatrixXf* infoVec);
 };
 
 #endif
