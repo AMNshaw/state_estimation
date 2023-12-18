@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <launch>
         <arg name="vehicle" default="iris"/>
-        <arg name="consensus" default="true"/>
-        <arg name="rate" default="200"/>
+        <arg name="consensus" default="false"/>
+        <arg name="rate" default="80"/>
         <arg name="fusionNum" default="2"/>
         <arg name="stateSize" default="9"/>
 
@@ -12,8 +12,8 @@
                 <param name="rate" value="$(arg rate)"/>
                 <param name="consensus" value="$(arg consensus)"/>
 
-                <node name="synchronizer" pkg="state_estimation" type="self_msg_sync" output="screen"></node>
-                <node name="state_estimation" pkg="state_estimation" type="state_estimation" ></node>
+                <node name="synchronizer" pkg="state_estimation" type="self_msg_sync"></node>
+                <node name="state_estimation" pkg="state_estimation" type="state_estimation" output="screen"></node>
         </group>
         <group ns="$(arg vehicle)_2">
                 <param name="ID" value="2" />
@@ -22,13 +22,15 @@
                 <param name="consensus" value="$(arg consensus)"/>
 
                 <node name="synchronizer" pkg="state_estimation" type="self_msg_sync" ></node>
-                <node name="state_estimation" pkg="state_estimation" type="state_estimation"></node>
+                <node name="state_estimation" pkg="state_estimation" type="state_estimation" ></node>
         </group>
+        <group ns="$(arg vehicle)_3">
+                <param name="ID" value="3" />
+                <param name="vehicle" value="$(arg vehicle)" />
+                <param name="rate" value="$(arg rate)"/>
+                <param name="consensus" value="$(arg consensus)"/>
 
-        <node name="consensus_state_estimation" pkg="state_estimation" type="consensus_state_estimation" output="screen">
-                <param name="fusionNum" value="$(arg fusionNum)" />
-                <param name="stateSize" value="$(arg stateSize)" />
-                <param name="rate" value="$(arg rate)" />
-        </node>
-        
+                <node name="synchronizer" pkg="state_estimation" type="self_msg_sync" ></node>
+                <node name="state_estimation" pkg="state_estimation" type="state_estimation" ></node>
+        </group>
 </launch>

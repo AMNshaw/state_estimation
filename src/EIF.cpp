@@ -4,11 +4,8 @@ EIF::EIF(int selfPointer, int MavNum)
 {
 	self_pointer = selfPointer;
 	mavNum = MavNum;
-	Mavs_curr = new MAV_eigen[mavNum];
-	Mavs_last = new MAV_eigen[mavNum];
-	for(int i = 0; i < mavNum; i++)
-		Mavs_last[i].R_w2b = Mavs_curr[i].R_w2b = Eigen::MatrixXf::Identity(3, 3);
 
+	
 	t_b2c.resize(3);
 	t_b2c<< 0.1, 0, 0; 
 
@@ -16,14 +13,9 @@ EIF::EIF(int selfPointer, int MavNum)
 	R_b2c<< 0, -1, 0,
 			0, 0, -1,
 			1, 0, 0;
-
 }
 
-EIF::~EIF()
-{
-	delete[] Mavs_curr;
-	delete[] Mavs_last;
-}
+EIF::~EIF(){}
 
 void EIF::EIF_data_init(int x_size, int z_size, EIF_data* est_object)
 {
@@ -38,6 +30,7 @@ void EIF::EIF_data_init(int x_size, int z_size, EIF_data* est_object)
 	est_object->pre_z.setZero(z_size);
 	est_object->y.setZero(x_size);
 
+	est_object->P = 1e-3*Eigen::MatrixXf::Identity(x_size, x_size);
 	est_object->F.setZero(x_size, x_size);
 	est_object->H.setZero(z_size, x_size);
 	est_object->s.setZero(x_size, x_size);
@@ -69,5 +62,5 @@ void EIF::computePredPairs()
 
 void EIF::computeCorrPairs()
 {
-	Mavs_last = Mavs_curr;
+	std::cout << "Virtual" << std::endl;
 }

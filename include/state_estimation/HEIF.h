@@ -3,8 +3,9 @@
 #pragma once
 
 #include <Eigen/Dense>
-#include <state_estimation/EIFpairStamped.h>
+#include <vector>
 #include "EIF.h"
+#include <dlib/optimization.h>
 
 class HEIF
 {
@@ -14,28 +15,29 @@ private:
 	Eigen::MatrixXf weightedS;
 	Eigen::VectorXf weightedXi_hat;
 	Eigen::VectorXf weightedY;
+	Eigen::MatrixXf fusedP;
+	Eigen::VectorXf fusedX;
+	Eigen::MatrixXf K;
+	Eigen::MatrixXf L;
+	Eigen::MatrixXf Gamma;
 
-	Eigen::MatrixXf fusedOmega;
-	Eigen::VectorXf fusedXi;
-	Eigen::VectorXf fusedX_t;
-
-	EIF_data* T;
+	std::vector<EIF_data> est_data;
+	EIF_data self_est;
 
 	int fusionNum;
 	int state_size;
 public:
-	HEIF(int num, int stateSize);
+	HEIF(int stateSize);
 	~HEIF();
-	void setData(EIF_data* target);
+	void setData(std::vector<EIF_data> est_Data);
+	void setData(std::vector<EIF_data> est_Data, EIF_data self);
+	void process();
 	void CI();
-	Eigen::VectorXf getTargetState();
-	state_estimation::EIFpairStamped getFusedPairs();
+	void CI_combination();
+	void CI_combination_with_selfEst();
+	double ICI_optimize_func(double weight);
+	void ICI();
+	Eigen::MatrixXf getFusedCov();
+	Eigen::VectorXf getFusedState();
 };
-
-
-
-
-
-
-
 #endif

@@ -30,20 +30,12 @@ private:
 	std::string RMSE_topic;
 
 	state_estimation::EIFpairStamped* fusionPairs;
-	deque<state_estimation::EIFpairStamped>* fusionPairsQue;
 	Eigen::VectorXf targetState_GT;
-
-	Eigen::MatrixXf fusedInfoMat;
-	Eigen::VectorXf fusedInfoVec;
-
-	std_msgs::Header sync_header;
+	std::vector<EIF_data> est_data;
 
 	int fusionNum;
 	int state_size;
-	double* time;
-	double min_time;
-	
-	EIF_data* T;
+	double max_time;
 
 	HEIF heif;
 public:
@@ -56,36 +48,34 @@ public:
 	~Data_process();
 
 	void set_topic();
-	void sync_process();
+	std::vector<EIF_data> get_curr_fuse_data();
 	void fusion();
 
-	void fusionPair_sync_cb(const state_estimation::EIFpairStamped::ConstPtr& ori_fusionPairs);
+	void fusionPair_cb(const state_estimation::EIFpairStamped::ConstPtr& ori_fusionPairs);
 	void targetPose_cb(const geometry_msgs::PoseStamped::ConstPtr& ori_targetPose);
 	void targetVel_cb(const geometry_msgs::TwistStamped::ConstPtr& ori_targetVel);
+
+	state_estimation::EIFpairStamped* getFusionPairs();
 
 	void compare(Eigen::VectorXf fusedX_t);
 	EIF_data eifMsg2Eigen(state_estimation::EIFpairStamped eifMsg);
 
 };
 
-Data_process::Data_process(ros::NodeHandle& nh, int num, int stateSize) : heif(num, stateSize)
+Data_process::Data_process(ros::NodeHandle& nh, int num, int stateSize) : heif(stateSize)
 {
 	fusionNum = num;
 	state_size = stateSize;
 	
-	T = new EIF_data[fusionNum];
-
 	set_topic();
 	fusionPairs = new state_estimation::EIFpairStamped[fusionNum];
-	fusionPairsQue = new deque<state_estimation::EIFpairStamped>[fusionNum];
 	fusionPair_sub = new ros::Subscriber[fusionNum];
-	time = new double[fusionNum];
 	topic_check = new bool[fusionNum];
 	for(int i=0; i < fusionNum; i++)
 		topic_check[i] = false;
 
 	for(int i=0; i < fusionNum; i++)
-		fusionPair_sub[i] = nh.subscribe<state_estimation::EIFpairStamped>(fusionPair_topics[i], 10, &Data_process::fusionPair_sync_cb, this);
+		fusionPair_sub[i] = nh.subscribe<state_estimation::EIFpairStamped>(fusionPair_topics[i], 5, &Data_process::fusionPair_cb, this);
 
 	targetPose_sub = nh.subscribe<geometry_msgs::PoseStamped>(targetPose_input_topic, 1, &Data_process::targetPose_cb, this);
 	targetVel_sub = nh.subscribe<geometry_msgs::TwistStamped>(targetVel_input_topic, 1, &Data_process::targetVel_cb, this);
@@ -101,10 +91,7 @@ Data_process::~Data_process()
 {
 	delete[] fusionPairs;
 	delete[] fusionPair_sub;
-	delete[] fusionPairsQue;
-	delete[] time;
 	delete[] topic_check;
-	delete[] T;
 }
 
 void Data_process::set_topic()
@@ -115,65 +102,51 @@ void Data_process::set_topic()
   	targetVel_input_topic = string("/target/mavros/local_position/velocity_local");
 }
 
+std::vector<EIF_data> Data_process::get_curr_fuse_data()
+{
+	est_data.clear();
+	max_time = -1;
+	for(int i=0; i<fusionNum; i++)
+	{
+		if(fusionPairs[i].header.stamp.toSec() > max_time)
+			max_time = fusionPairs[i].header.stamp.toSec();
+	}
+	for(int i=0; i<fusionNum; i++)
+	{
+		if(abs(fusionPairs[i].header.stamp.toSec() - max_time) <= 0.01)
+			est_data.push_back(eifMsg2Eigen(fusionPairs[i]));
+	}
+	return est_data;
+}
+
 EIF_data Data_process::eifMsg2Eigen(state_estimation::EIFpairStamped eifMsg)
 {
 	EIF_data est_object;
-	est_object.Omega_hat = Eigen::Map<Eigen::MatrixXf>(eifMsg.predInfoMat.data(), state_size, state_size);
-	est_object.xi_hat = Eigen::Map<Eigen::VectorXf>(eifMsg.predInfoVec.data(), state_size);
-	est_object.s = Eigen::Map<Eigen::MatrixXf>(eifMsg.corrInfoMat.data(), state_size, state_size);
-	est_object.y = Eigen::Map<Eigen::VectorXf>(eifMsg.corrInfoVec.data(), state_size);
+	est_object.P_hat = Eigen::Map<Eigen::MatrixXf>(eifMsg.P_hat.data(), state_size, state_size);
+	est_object.X_hat = Eigen::Map<Eigen::VectorXf>(eifMsg.X_hat.data(), state_size);
+	est_object.s = Eigen::Map<Eigen::MatrixXf>(eifMsg.s.data(), state_size, state_size);
+	est_object.y = Eigen::Map<Eigen::VectorXf>(eifMsg.y.data(), state_size);
 
 	return est_object;
 }
 
-void Data_process::fusionPair_sync_cb(const state_estimation::EIFpairStamped::ConstPtr& ori_fusionPairs)
+void Data_process::fusion()
+{
+	heif.setData(get_curr_fuse_data());
+	heif.CI();
+	compare(heif.getFusedState());
+}
+
+
+void Data_process::fusionPair_cb(const state_estimation::EIFpairStamped::ConstPtr& ori_fusionPairs)
 {
 	int index = ori_fusionPairs->id - 1;
 	fusionPairs[index] = *ori_fusionPairs;
-	// if(!topic_check[index])
-	// 	topic_check[index] = true;
-
-	// fusionPairsQue[index].push_front(*ori_fusionPairs);
-	// time[index] = fusionPairsQue[index].front().header.stamp.toSec();
-	// min_time = time[0];
-	// for(int i = 0; i < fusionNum; i++)
-	// {
-	// 	if(time[i] < min_time)
-	// 		min_time = time[i];
-	// }
 }
 
-void Data_process::sync_process()
-{
-	for(int i =0; i < fusionNum; i++)
-	{	
-		
-		while(time[i] - min_time >= 0.005)
-		{
-			time[i] = fusionPairsQue[i].front().header.stamp.toSec();
-			if(fusionPairsQue[i].size() > 1)
-			{
-				fusionPairsQue[i].pop_front();
-			}
-		}
-		
-		fusionPairs[i] = fusionPairsQue[i].front();
-	}
-}
-
-void Data_process::fusion()
-{
-	for(int i=0; i<fusionNum; i++)
-		T[i] = eifMsg2Eigen(fusionPairs[i]);
-	heif.setData(T);
-	heif.CI();
-	fusedPair_pub.publish(heif.getFusedPairs());
-	compare(heif.getTargetState());
-}
 
 void Data_process::targetPose_cb(const geometry_msgs::PoseStamped::ConstPtr& ori_targetPose)
 {
-	sync_header = ori_targetPose->header;
 	targetState_GT(0) = ori_targetPose->pose.position.x;
 	targetState_GT(1) = ori_targetPose->pose.position.y;
 	targetState_GT(2) = ori_targetPose->pose.position.z;
@@ -198,17 +171,14 @@ void Data_process::compare(Eigen::VectorXf fusedX_t)
 
 	std::cout << "[HEIF]: X_t\n" << fusedX_t << "\n\n";
 	std::cout << "[HEIF]: RMS_p: " << E_p.norm() << "\n[HEIF]: RMS_v: " << E_v.norm() << "\n\n";
-	Eigen::VectorXf err0 = targetState_GT.segment(3, 3) - (T[0].Omega_hat.inverse()*T[0].xi_hat).segment(3, 3);
-	Eigen::VectorXf err1 = targetState_GT.segment(3, 3) - (T[1].Omega_hat.inverse()*T[1].xi_hat).segment(3, 3);
 
-	std::cout << "[EIF0]: RMS_v: " << err0.norm() << "\n";
-	std::cout << "[EIF1]: RMS_v: " << err1.norm() << "\n";
-
-	RMSE_data.header = sync_header;
+	RMSE_data.header.stamp = ros::Time::now();
 	RMSE_data.RMSE_p = E_p.norm();
 	RMSE_data.RMSE_v = E_v.norm();
 	RMSE_pub.publish(RMSE_data);
 }
+
+state_estimation::EIFpairStamped* Data_process::getFusionPairs(){return fusionPairs;}
 
 int main(int argc, char** argv)
 {
@@ -245,7 +215,6 @@ int main(int argc, char** argv)
 
 	while(ros::ok())
 	{
-		//dp.sync_process();
 		dp.fusion();
 
 		ros::spinOnce();

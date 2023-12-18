@@ -16,29 +16,15 @@ target_EIF::target_EIF(int selfPointer, int MavNum, bool est_target_acc) : EIF(s
 				 0.0, fy, cy,
 				 0.0, 0.0, 1.0;
 
-	for(int i = 0; i < mavNum; i++)
-		Mavs_curr[i].v.setZero();			 
-	
-	prevXi.setZero(target_state_size);
+	Mav_curr.v.setZero();		 
 }
 target_EIF::~target_EIF(){}
 
-void target_EIF::setData(MAV_eigen* MAVs, Eigen::Vector3f bBox)
+void target_EIF::setData(MAV_eigen MAV, Eigen::Vector3f bBox)
 {
-	Mavs_last = Mavs_curr;
-	Mavs_curr = MAVs;
-	Mavs_curr[self_pointer].r_c = Mavs_curr[self_pointer].r + Mavs_curr[self_pointer].R_w2b.inverse()*t_b2c;
+	Mav_curr = MAV;
+	Mav_curr.r_c = Mav_curr.r + Mav_curr.R_w2b.inverse()*t_b2c;
 	boundingBox = bBox;
-}
-
-void target_EIF::setFusedPairs(Eigen::MatrixXf fusedOmega, Eigen::VectorXf fusedXi)
-{
-	if(prevXi != fusedXi)
-	{
-		T.Omega = fusedOmega;
-		T.X = fusedOmega.inverse()*fusedXi;
-	}
-	prevXi = fusedXi;
 }
 
 EIF_data target_EIF::getTgtData(){return T;}
@@ -54,12 +40,8 @@ void target_EIF::computePredPairs(double delta_t, EIF_data* Rbs)
 	T.F.block(0, 6, 3, 3) = 0.5*Eigen::Matrix3f::Identity(3, 3)*dt*dt;
 	T.F.block(3, 6, 3, 3) = Eigen::Matrix3f::Identity(3, 3)*dt;
 
+	T.P_hat = T.F*T.P*T.F.transpose() + Q;
 	T.X_hat = T.F*T.X;
-
-	///////////////////////////// Xi_hat, Omega_hat ////////////////////////////////
-	T.Omega_hat = (T.F*T.Omega.inverse()*T.F.transpose() + Q).inverse();
-	T.xi_hat = T.Omega_hat*T.X_hat;
-	
 }
 void target_EIF::computeCorrPairs()
 {
@@ -72,8 +54,8 @@ void target_EIF::computeCorrPairs()
 	}
 	else
 	{
-		Eigen::Matrix3f R_w2c = R_b2c*Mavs_curr[self_pointer].R_w2b;
-		Eigen::Vector3f r_qc_c = R_w2c*(T.X_hat.segment(0, 3) - Mavs_curr[self_pointer].r_c);
+		Eigen::Matrix3f R_w2c = R_b2c*Mav_curr.R_w2b;
+		Eigen::Vector3f r_qc_c = R_w2c*(T.X_hat.segment(0, 3) - Mav_curr.r_c);
 
 		X = r_qc_c(0)/r_qc_c(2);
 		Y = r_qc_c(1)/r_qc_c(2);
@@ -97,10 +79,13 @@ void target_EIF::computeCorrPairs()
 		T.s = T.H.transpose()*R.inverse()*T.H;
 		T.y = T.H.transpose()*R.inverse()*(T.z - T.h + T.H*T.X_hat);
 	}
-	T.Omega = T.Omega_hat + T.s;
-	T.xi = T.xi_hat + T.y;
-	T.X = T.Omega.inverse()*T.xi;
-
+	// T.P = (T.P_hat.inverse() + T.s).inverse();
+	// T.X = T.P*(T.P_hat.inverse()*T.X_hat + T.y);
 	T.pre_z = T.z; 
 }
 
+void target_EIF::setFusionPairs(Eigen::MatrixXf fusedP, Eigen::VectorXf fusedX)
+{
+    T.P = fusedP;
+    T.X = fusedX;
+}

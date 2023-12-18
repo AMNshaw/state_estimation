@@ -1,14 +1,10 @@
 #include "HEIF.h"
 #include "EIF.h"
 
-HEIF::HEIF(int num, int stateSize)
+HEIF::HEIF(int stateSize)
 {
-	fusionNum = num;
 	state_size = stateSize;
-	printf("[HEIF]: Fusion quantity: %i\n", fusionNum);
 	printf("[HEIF]: Fusion state size: %i\n", state_size);
-
-	T = new EIF_data[fusionNum];
 
 	weightedOmega_hat.setZero(state_size, state_size);
 	weightedXi_hat.setZero(state_size);
@@ -16,81 +12,119 @@ HEIF::HEIF(int num, int stateSize)
 	weightedY.setZero(state_size);
 }
 
-HEIF::~HEIF()
+HEIF::~HEIF(){}
+
+void HEIF::setData(std::vector<EIF_data> est_Data)
 {
-	delete[] T;
+	est_data = est_Data;
+	fusionNum = est_data.size();
 }
 
-void HEIF::setData(EIF_data* target)
+void HEIF::setData(std::vector<EIF_data> est_Data, EIF_data self)
 {
-	T = target;
+	self_est = self;
+	est_data = est_Data;
+	fusionNum = est_data.size();
+}
+
+double HEIF::ICI_optimize_func(double weight)
+{
+	Gamma = weightedS*(weight*weightedS + (1-weight)*weightedOmega_hat).inverse()*weightedOmega_hat;
+	Eigen::MatrixXf p = (weightedS + weightedOmega_hat - Gamma).inverse();
+	return static_cast<double>(p.trace());
+}
+
+void HEIF::ICI()
+{
+	double w = 0.5;
+	dlib::find_min_single_variable(
+		[this](double weight){return ICI_optimize_func(weight);},
+		w,
+		0.0,
+		0.999,
+		0.001,
+		100,
+		0.1);
+	
+	Gamma = weightedS*(w*weightedS + (1-w)*weightedOmega_hat).inverse()*weightedOmega_hat;
+
+	K = weightedOmega_hat - w*Gamma;
+	L = weightedS - (1-w)*Gamma;
+
+	fusedP = (weightedS + weightedOmega_hat - Gamma).inverse();
+	fusedX = fusedP*(K*weightedOmega_hat.inverse()*weightedXi_hat + L*weightedY);
+	std::cout << "weight:" << w << std::endl;
+	std::cout << "fusedX:\n" << fusedX << "\n\n";
 }
 
 void HEIF::CI()
 {
 	float trace_sum = 0.0;
 	float* weight = new float[fusionNum];
-	weightedOmega_hat.setZero();
-	weightedXi_hat.setZero();
-	weightedS.setZero();
-	weightedY.setZero();
-	//////////////////////////// omega_hat, xi_hat ////////////////////////////
+	
+	//////////////////////////// P_hat, X_hat ////////////////////////////
 	for(int i=0; i<fusionNum; i++)
-		trace_sum += T[i].Omega_hat.trace();
-	
-	for(int i = 0; i < fusionNum; i++)
+		trace_sum += 1/est_data[i].P_hat.trace();
+	for(int i=0; i<fusionNum; i++)
 	{
-		if(trace_sum == 0)
-			weight[i] = 0;
-		else
-			weight[i] = T[i].Omega_hat.trace()/trace_sum;
+		weight[i] = 1/est_data[i].P_hat.trace()/trace_sum;
+		weightedOmega_hat += weight[i]*est_data[i].P_hat.inverse();
+		weightedXi_hat += weight[i]*(est_data[i].P_hat.inverse()*est_data[i].X_hat);
 	}
-	
-	for(int i = 0; i < fusionNum; i++)
-		weightedOmega_hat += weight[i]*T[i].Omega_hat;
-	for(int i = 0; i < fusionNum; i++)
-		weightedXi_hat += weight[i]*T[i].xi_hat;
 
 	// for(int i=0; i<fusionNum; i++)
-	// 	std::cout << "weight" << i << ": "<< weight[i];
-	// std::cout<<std::endl;
+	// {
+	// 	std::cout << "weight" << i+1 << ": " << weight[i] << "\n";
+	// }
 
 	//////////////////////////// s, y ////////////////////////////
 	trace_sum = 0.0;
 	for(int i=0; i<fusionNum; i++)
-		trace_sum += T[i].s.trace();
-	
-	for(int i = 0; i < fusionNum; i++)
+		trace_sum += est_data[i].s.trace();
+	for(int i=0; i<fusionNum; i++)
 	{
-		if(trace_sum == 0)
-			weight[i] = 0;
-		else
-			weight[i] = T[i].s.trace()/trace_sum;
+		if(trace_sum !=0)
+		{
+			weight[i] = est_data[i].s.trace()/trace_sum;
+			weightedS += weight[i]*est_data[i].s;
+			weightedY += weight[i]*est_data[i].y;
+		}
 	}
-	
-	for(int i = 0; i < fusionNum; i++)
-		weightedS += weight[i]*T[i].s;
-		
-	for(int i = 0; i < fusionNum; i++)
-		weightedY += weight[i]*T[i].y;
 
-	fusedOmega = weightedOmega_hat + weightedS;
-	fusedXi = weightedXi_hat + weightedY;
-	fusedX_t = fusedOmega.inverse()*fusedXi;
+	
 
 	delete[] weight;
 }
 
-state_estimation::EIFpairStamped HEIF::getFusedPairs()
+void HEIF::CI_combination()
 {
-	state_estimation::EIFpairStamped fusionPairs_Vec;
-
-	std::vector<float> Omega_vec(fusedOmega.data(), fusedOmega.data() + fusedOmega.size());
-	std::vector<float> xi_vec(fusedXi.data(), fusedXi.data() + fusedXi.size());
-
-	fusionPairs_Vec.fusedInfoMat = Omega_vec;
-	fusionPairs_Vec.fusedInfoVec = xi_vec;
-	return fusionPairs_Vec;
+	fusedP = (weightedOmega_hat + weightedS).inverse();
+	fusedX = fusedP*(weightedXi_hat + weightedY);
+	//std::cout << "X:\n" << fusedX << "\n\n";
 }
 
-Eigen::VectorXf HEIF::getTargetState(){return fusedX_t;}
+void HEIF::CI_combination_with_selfEst()
+{
+	weightedOmega_hat += self_est.P_hat.inverse();
+	weightedS += self_est.s;
+	weightedXi_hat += self_est.P_hat.inverse()*self_est.X_hat;
+	weightedY += self_est.y;
+	CI_combination();
+}
+
+void HEIF::process()
+{
+	weightedOmega_hat.setZero();
+	weightedXi_hat.setZero();
+	weightedS.setZero();
+	weightedY.setZero();
+	if(est_data.size() > 0)
+		CI();
+	if(self_est.X_hat.size() > 0)
+		CI_combination_with_selfEst();
+	else
+		CI_combination();
+}
+
+Eigen::MatrixXf HEIF::getFusedCov(){return fusedP;}
+Eigen::VectorXf HEIF::getFusedState(){return fusedX;}

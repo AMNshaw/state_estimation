@@ -26,13 +26,6 @@ void MAV::pose_cb(const geometry_msgs::PoseStamped::ConstPtr& msg)
     if(!pose_init)
         pose_init = true;
     pose_current = *msg;
-
-    tf::Quaternion Q(
-        pose_current.pose.orientation.x,
-        pose_current.pose.orientation.y,
-        pose_current.pose.orientation.z,
-        pose_current.pose.orientation.w);
-    tf::Matrix3x3(Q).getRPY(roll,pitch,yaw);
 }
 
 void MAV::vel_cb(const geometry_msgs::TwistStamped::ConstPtr& msg)
@@ -47,8 +40,19 @@ void MAV::imu_cb(const sensor_msgs::Imu::ConstPtr& msg)
     if(!imu_init)
         imu_init = true;
     imu_current = *msg;
+    tf::Quaternion Q(
+        pose_current.pose.orientation.x,
+        pose_current.pose.orientation.y,
+        pose_current.pose.orientation.z,
+        pose_current.pose.orientation.w);
+    tf::Matrix3x3(Q).getRPY(roll,pitch,yaw);
+    tf::Vector3 acc(imu_current.linear_acceleration.x, imu_current.linear_acceleration.y, imu_current.linear_acceleration.z);
+    acc_current.x = tf::quatRotate(Q, acc).getX();
+    acc_current.y = tf::quatRotate(Q, acc).getY();
+    acc_current.z = tf::quatRotate(Q, acc).getZ() - 9.81;
 }
 
 geometry_msgs::PoseStamped MAV::getPose(){return pose_current;}
 geometry_msgs::TwistStamped MAV::getVel(){return vel_current;}
+geometry_msgs::Vector3 MAV::getAcc(){return acc_current;}
 double MAV::getYaw(){return yaw;}

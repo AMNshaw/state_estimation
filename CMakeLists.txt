@@ -21,7 +21,7 @@ find_package(catkin REQUIRED COMPONENTS
 find_package(Eigen3 REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(PCL REQUIRED)
-
+find_package(dlib REQUIRED)
 
 
 ## System dependencies are found with CMake's conventions
@@ -134,6 +134,7 @@ include_directories(
   ${EIGEN3_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS}
   ${PCL_INCLUDE_DIRS}
+  ${dlib_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
@@ -151,14 +152,22 @@ add_library(EIF
    src/EIF.cpp
    src/TEIF.cpp
    src/REIF.cpp
-)
-target_include_directories(EIF PRIVATE
-  include/${PROJECT_NAME}/ )
-
-add_library(HEIF
+   src/SEIF.cpp
    src/HEIF.cpp
 )
-target_include_directories(HEIF PRIVATE
+
+target_link_libraries(EIF
+  ${catkin_LIBRARIES} 
+  ${dlib_LIBRARIES}
+  )
+
+target_include_directories(EIF PRIVATE
+  include/${PROJECT_NAME}/)
+
+add_library(CommonFuncs
+  src/CommonFuncs.cpp
+)
+target_include_directories(CommonFuncs PRIVATE
   include/${PROJECT_NAME}/ )
 
 # state_estimation
@@ -168,6 +177,7 @@ add_executable(state_estimation
 target_link_libraries(state_estimation
   Mav
   EIF
+  CommonFuncs
   ${catkin_LIBRARIES} )
 target_include_directories(state_estimation PRIVATE
   include/${PROJECT_NAME}/ ) 
@@ -189,7 +199,6 @@ add_executable(consensus_state_estimation
   )
 target_link_libraries(consensus_state_estimation
   ${catkin_LIBRARIES} 
-  HEIF
   EIF)
 target_include_directories(consensus_state_estimation PRIVATE
   include/${PROJECT_NAME}/ ) 

@@ -15,6 +15,7 @@
 #include <sensor_msgs/Imu.h>
 #include <mavros_msgs/State.h>
 #include <tf/tf.h>
+#include <Eigen/Dense>
 
 using namespace std;
 
@@ -28,6 +29,7 @@ private:
 
     geometry_msgs::PoseStamped pose_current;
     geometry_msgs::TwistStamped vel_current;
+    geometry_msgs::Vector3 acc_current;
     sensor_msgs::Imu imu_current;
 
     ros::Subscriber pose_sub;
@@ -44,6 +46,7 @@ public:
     void mav_state_cb(const mavros_msgs::State::ConstPtr& msg);
     geometry_msgs::PoseStamped getPose();
     geometry_msgs::TwistStamped getVel();
+    geometry_msgs::Vector3 getAcc();
     mavros_msgs::State getCurrentState();
     double getYaw();
 
@@ -54,6 +57,16 @@ public:
     bool imu_init;
 
     static int self_index;
+};
+
+struct MAV_eigen
+{
+	Eigen::Vector3f r;
+    Eigen::Vector3f r_c;
+	Eigen::Vector3f v;
+	Eigen::Vector3f a;
+	Eigen::Vector3f omega_c;
+	Eigen::Matrix3f R_w2b;
 };
 
 #endif

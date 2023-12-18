@@ -1,19 +1,7 @@
 #ifndef EIF_H
 #define EIF_H
 #pragma once
-#include <Eigen/Dense>
-#include <geometry_msgs/PoseStamped.h>
-#include <geometry_msgs/TwistStamped.h>
-
-struct MAV_eigen
-{
-	Eigen::Vector3f r;
-    Eigen::Vector3f r_c;
-	Eigen::Vector3f v;
-	Eigen::Vector3f a;
-	Eigen::Vector3f omega_c;
-	Eigen::Matrix3f R_w2b;
-};
+#include "Mav.h"
 
 struct EIF_data
 {
@@ -43,9 +31,6 @@ protected:
 
     int self_pointer;
     int mavNum;
-
-    MAV_eigen* Mavs_last;
-    MAV_eigen* Mavs_curr;
 
     Eigen::MatrixXf Q; //noise matrix
     Eigen::MatrixXf R; //noise matrix
