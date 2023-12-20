@@ -1,8 +1,8 @@
 #include "TEIF.h"
 
-target_EIF::target_EIF(int selfPointer, int MavNum, bool est_target_acc) : EIF(selfPointer, MavNum)
+target_EIF::target_EIF(int state_size, int selfPointer, int MavNum) : EIF(selfPointer, MavNum)
 {
-	target_state_size = 9;
+	target_state_size = state_size;
 	target_measurement_size = 3;
 	EIF_data_init(target_state_size, target_measurement_size, &T);
 
@@ -37,8 +37,12 @@ void target_EIF::computePredPairs(double delta_t, EIF_data* Rbs)
 
 	T.F.setIdentity();
 	T.F.block(0, 3, 3, 3) = Eigen::Matrix3f::Identity(3, 3)*dt;
-	T.F.block(0, 6, 3, 3) = 0.5*Eigen::Matrix3f::Identity(3, 3)*dt*dt;
-	T.F.block(3, 6, 3, 3) = Eigen::Matrix3f::Identity(3, 3)*dt;
+
+	if(target_state_size == 9)
+	{
+		T.F.block(0, 6, 3, 3) = 1/2*Eigen::Matrix3f::Identity(3, 3)*dt*dt;
+		T.F.block(3, 6, 3, 3) = Eigen::Matrix3f::Identity(3, 3)*dt;
+	}
 
 	T.P_hat = T.F*T.P*T.F.transpose() + Q;
 	T.X_hat = T.F*T.X;
@@ -79,8 +83,8 @@ void target_EIF::computeCorrPairs()
 		T.s = T.H.transpose()*R.inverse()*T.H;
 		T.y = T.H.transpose()*R.inverse()*(T.z - T.h + T.H*T.X_hat);
 	}
-	// T.P = (T.P_hat.inverse() + T.s).inverse();
-	// T.X = T.P*(T.P_hat.inverse()*T.X_hat + T.y);
+	T.P = (T.P_hat.inverse() + T.s).inverse();
+	T.X = T.P*(T.P_hat.inverse()*T.X_hat + T.y);
 	T.pre_z = T.z; 
 }
 

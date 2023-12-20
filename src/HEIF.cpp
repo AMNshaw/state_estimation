@@ -6,22 +6,28 @@ HEIF::HEIF(int stateSize)
 	state_size = stateSize;
 	printf("[HEIF]: Fusion state size: %i\n", state_size);
 
-	weightedOmega_hat.setZero(state_size, state_size);
-	weightedXi_hat.setZero(state_size);
-	weightedS.setZero(state_size, state_size);
-	weightedY.setZero(state_size);
+	// weightedOmega_hat.setZero(state_size, state_size);
+	// weightedXi_hat.setZero(state_size);
+	// weightedS.setZero(state_size, state_size);
+	// weightedY.setZero(state_size);
 }
 
 HEIF::~HEIF(){}
 
 void HEIF::setData(std::vector<EIF_data> est_Data)
 {
+	if(est_Data.size() > 0)
+		state_size = est_Data[0].X_hat.size();
+		
 	est_data = est_Data;
 	fusionNum = est_data.size();
 }
 
 void HEIF::setData(std::vector<EIF_data> est_Data, EIF_data self)
 {
+	if(self.X_hat.size() > 0)
+		state_size = self.X_hat.size();
+
 	self_est = self;
 	est_data = est_Data;
 	fusionNum = est_data.size();
@@ -72,11 +78,6 @@ void HEIF::CI()
 		weightedXi_hat += weight[i]*(est_data[i].P_hat.inverse()*est_data[i].X_hat);
 	}
 
-	// for(int i=0; i<fusionNum; i++)
-	// {
-	// 	std::cout << "weight" << i+1 << ": " << weight[i] << "\n";
-	// }
-
 	//////////////////////////// s, y ////////////////////////////
 	trace_sum = 0.0;
 	for(int i=0; i<fusionNum; i++)
@@ -90,8 +91,6 @@ void HEIF::CI()
 			weightedY += weight[i]*est_data[i].y;
 		}
 	}
-
-	
 
 	delete[] weight;
 }
@@ -114,10 +113,10 @@ void HEIF::CI_combination_with_selfEst()
 
 void HEIF::process()
 {
-	weightedOmega_hat.setZero();
-	weightedXi_hat.setZero();
-	weightedS.setZero();
-	weightedY.setZero();
+	weightedOmega_hat.setZero(state_size, state_size);
+	weightedXi_hat.setZero(state_size);
+	weightedS.setZero(state_size, state_size);
+	weightedY.setZero(state_size);
 	if(est_data.size() > 0)
 		CI();
 	if(self_est.X_hat.size() > 0)

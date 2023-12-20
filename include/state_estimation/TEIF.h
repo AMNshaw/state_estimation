@@ -22,7 +22,7 @@ private:
     MAV_eigen Mav_curr;
 
 public:
-    target_EIF(int selfPointer, int MavNum, bool est_target_acc);
+    target_EIF(int state_size, int selfPointer, int MavNum);
     ~target_EIF();
     void computePredPairs(double delta_t, EIF_data* Rbs);
     void computeCorrPairs();

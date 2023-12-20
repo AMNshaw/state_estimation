@@ -48,9 +48,14 @@ def plotFromBag(bag, name):
     plot_data_v(timestamps, EIF_1_RMSE_v, name)
 
 folder = '/home/ncrl/gazebo_sim_ws/src/state_estimation/bag/'
+
 file = folder + 'TEIF_tol005.bag'
 bag = rosbag.Bag(file)
 plotFromBag(bag, 'TEIF tolerance 0.05s')
+
+file = folder + 'TEIF_tol003.bag'
+bag = rosbag.Bag(file)
+plotFromBag(bag, 'TEIF tolerance 0.03s')
 
 file = folder + 'TEIF_tol001.bag'
 bag = rosbag.Bag(file)

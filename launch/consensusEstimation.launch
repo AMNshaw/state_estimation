@@ -2,33 +2,40 @@
 <launch>
         <arg name="vehicle" default="iris"/>
         <arg name="consensus" default="false"/>
-        <arg name="rate" default="80"/>
+        <arg name="rate" default="50"/>
         <arg name="fusionNum" default="2"/>
-        <arg name="stateSize" default="9"/>
+        <arg name="stateSize" default="6"/>
+        <arg name="targetTimeTol" default="0.05"/>
 
         <group ns="$(arg vehicle)_1">
                 <param name="ID" value="1" />
+                <param name="stateSize" value="$(arg stateSize)"/>
                 <param name="vehicle" value="$(arg vehicle)" />
                 <param name="rate" value="$(arg rate)"/>
                 <param name="consensus" value="$(arg consensus)"/>
+                <param name="targetTimeTol" value="$(arg targetTimeTol)"/>
 
                 <node name="synchronizer" pkg="state_estimation" type="self_msg_sync"></node>
                 <node name="state_estimation" pkg="state_estimation" type="state_estimation" output="screen"></node>
         </group>
         <group ns="$(arg vehicle)_2">
                 <param name="ID" value="2" />
+                <param name="stateSize" value="$(arg stateSize)"/>
                 <param name="vehicle" value="$(arg vehicle)" />
                 <param name="rate" value="$(arg rate)"/>
                 <param name="consensus" value="$(arg consensus)"/>
+                <param name="targetTimeTol" value="$(arg targetTimeTol)"/>
 
                 <node name="synchronizer" pkg="state_estimation" type="self_msg_sync" ></node>
                 <node name="state_estimation" pkg="state_estimation" type="state_estimation" ></node>
         </group>
         <group ns="$(arg vehicle)_3">
                 <param name="ID" value="3" />
+                <param name="stateSize" value="$(arg stateSize)"/>
                 <param name="vehicle" value="$(arg vehicle)" />
                 <param name="rate" value="$(arg rate)"/>
                 <param name="consensus" value="$(arg consensus)"/>
+                <param name="targetTimeTol" value="$(arg targetTimeTol)"/>
 
                 <node name="synchronizer" pkg="state_estimation" type="self_msg_sync" ></node>
                 <node name="state_estimation" pkg="state_estimation" type="state_estimation" ></node>

@@ -3,9 +3,9 @@
 /////////////////////////////////////////////////////////// robots EIF ///////////////////////////////////////////////////////////
 Self_acc_EIF::Self_acc_EIF(int selfPointer, int MavNum) : EIF(selfPointer, MavNum)
 {
-	robots_state_size = 9;
-	robots_measurement_size = 3;
-	EIF_data_init(robots_state_size, robots_measurement_size, &this->self);
+	self_state_size = 9;
+	self_measurement_size = 3;
+	EIF_data_init(self_state_size, self_measurement_size, &this->self);
 }
 Self_acc_EIF::~Self_acc_EIF(){}
 
@@ -55,4 +55,9 @@ void Self_acc_EIF::setFusionPairs(Eigen::MatrixXf fusedP, Eigen::VectorXf fusedX
 {
     self.P = fusedP;
     self.X = fusedX;
+}
+
+void Self_acc_EIF::setCurrPose(Eigen::VectorXf pose)
+{
+    self.X.segment(0, 3) = pose;
 }

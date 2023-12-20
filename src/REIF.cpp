@@ -39,7 +39,7 @@ void robots_EIF::computePredPairs(double delta_t)
 			Rbs[i].F.block(0, 3, 3, 3) = Eigen::Matrix3f::Identity(3, 3)*dt;
 			Rbs[i].F.block(0, 6, 3, 3) = 1/2*Eigen::Matrix3f::Identity(3, 3)*dt*dt;
 			Rbs[i].F.block(3, 6, 3, 3) = Eigen::Matrix3f::Identity(3, 3)*dt;
-
+			
 			Rbs[i].P_hat = Rbs[i].F*Rbs[i].P*Rbs[i].F.transpose() + Q;
 			Rbs[i].X_hat = Rbs[i].F*Rbs[i].X;
 		}

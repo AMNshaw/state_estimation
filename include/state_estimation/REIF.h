@@ -11,7 +11,6 @@ private:
 public:
     robots_EIF(int selfPointer, int MavNum);
     ~robots_EIF();
-    void process(double delta_t);
     void computePredPairs(double delta_t);
     void computeCorrPairs();
     void setData(std::vector<MAV_eigen> MAVs);

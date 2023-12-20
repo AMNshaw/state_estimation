@@ -222,16 +222,19 @@ int main(int argc, char **argv)
     ros::NodeHandle nh;
 
     std::string vehicle;
-	bool est_target_acc = 0;
+	bool est_target_acc = false;
     bool consensus = false;
 	int mavNum = 3;
     int hz;
 	int ID = 0;
-	int state_size = 9;
+	int state_size = 6;
+	float targetTimeTol = 0.05;
     ros::param::get("vehicle", vehicle);
 	ros::param::get("ID", ID);
     ros::param::get("rate", hz);
 	ros::param::get("consensus", consensus);
+	ros::param::get("stateSize", state_size);
+	ros::param::get("targetTimeTol", targetTimeTol);
 	double last_t;
 	double dt;
 	MAV::self_index = ID-1;
@@ -271,9 +274,11 @@ int main(int argc, char **argv)
 	}
 	printf("\n[%s_%i EIF]: Topics all checked\n", vehicle.c_str(), ID);
 	
-	robots_EIF Reif(MAV::self_index, mavNum);
-	target_EIF Teif(MAV::self_index, mavNum, est_target_acc);
 	Self_acc_EIF Seif(MAV::self_index, mavNum);
+	Mavs_eigen = mavsMsg2Eigen(Mavs, mavNum);
+	Seif.setCurrPose(Mavs_eigen[MAV::self_index].r);
+	robots_EIF Reif(MAV::self_index, mavNum);
+	target_EIF Teif(state_size, MAV::self_index, mavNum);
 	HEIF selfState_HEIF(state_size);
 	HEIF targetState_HEIF(state_size);
 
@@ -312,12 +317,13 @@ int main(int argc, char **argv)
 			Teif.computePredPairs(dt, Reif.getRbsData());
 			Teif.computeCorrPairs();
 			dp.self2TgtEIFpairs_pub.publish(eigen2EifMsg(Teif.getTgtData(), ID));
-			allTgtEIFData = dp.get_curr_fusing_data(dp.getRbs2TgtEIFmsg(), 0.01);
+			allTgtEIFData = dp.get_curr_fusing_data(dp.getRbs2TgtEIFmsg(), targetTimeTol);
 			allTgtEIFData.push_back(Teif.getTgtData());
 			targetState_HEIF.setData(allTgtEIFData);
 			targetState_HEIF.process();
 			Teif.setFusionPairs(targetState_HEIF.getFusedCov(), targetState_HEIF.getFusedState());
-			dp.tgtState_RMSE_pub.publish(compare(dp.targetState_GT, Teif.getTgtData().X));
+			//dp.tgtState_RMSE_pub.publish(compare(dp.targetState_GT, Teif.getTgtData().X));
+			dp.tgtState_RMSE_pub.publish(compare(dp.targetState_GT, targetState_HEIF.getFusedState()));
 		}
 
 		/////////////////////////////////////////////////////////////////////////////////////
