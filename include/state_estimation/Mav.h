@@ -44,17 +44,21 @@ public:
     void vel_cb(const geometry_msgs::TwistStamped::ConstPtr& msg);
     void imu_cb(const sensor_msgs::Imu::ConstPtr& msg);
     void mav_state_cb(const mavros_msgs::State::ConstPtr& msg);
+    
     geometry_msgs::PoseStamped getPose();
     geometry_msgs::TwistStamped getVel();
     geometry_msgs::Vector3 getAcc();
     mavros_msgs::State getCurrentState();
     double getYaw();
+    void setPose_hz(float hz);
 
     string topic;
     int id;
     bool pose_init;
     bool vel_init;
     bool imu_init;
+    int topic_count;
+    float pose_hz;
 
     static int self_index;
 };

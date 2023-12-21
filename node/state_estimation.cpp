@@ -245,6 +245,8 @@ int main(int argc, char **argv)
 				MAV(nh, vehicle, 2),
 				MAV(nh, vehicle, 3)};
 	mavNum = sizeof(Mavs)/sizeof(Mavs[0]);
+	for(int i=0; i< mavNum; i++)
+		Mavs[i].setPose_hz(2);
 	
 	std::vector<MAV_eigen> Mavs_eigen(mavNum);
 	Data_process dp(nh, vehicle, ID, mavNum);

@@ -13,19 +13,29 @@ MAV::MAV(ros::NodeHandle &nh_, string vehicle, int ID)
 {
     nh = nh_;
     pose_init = vel_init = imu_init = false;
+    id = ID;
+    roll = pitch = yaw = 0;
+    topic_count = 0;
+    pose_hz = 30.0;
+
     string prefix = string("/") + vehicle + string("_") + to_string(ID);
     pose_sub = nh.subscribe<geometry_msgs::PoseStamped>(prefix + string("/mavros/local_position/pose_initialized"), 10, &MAV::pose_cb, this);
     vel_sub = nh.subscribe<geometry_msgs::TwistStamped>(prefix + string("/mavros/local_position/velocity_local"), 10, &MAV::vel_cb, this);
     imu_sub = nh.subscribe<sensor_msgs::Imu>(prefix + string("/mavros/imu/data"), 10, &MAV::imu_cb, this);
-    id = ID;
-    roll = pitch = yaw = 0;
+    
 }
 
 void MAV::pose_cb(const geometry_msgs::PoseStamped::ConstPtr& msg)
 {
     if(!pose_init)
         pose_init = true;
-    pose_current = *msg;
+    topic_count++;
+    if(topic_count >= 30/pose_hz)
+    {
+        pose_current = *msg;
+        topic_count = 0;
+    }
+        
 }
 
 void MAV::vel_cb(const geometry_msgs::TwistStamped::ConstPtr& msg)
@@ -56,3 +66,7 @@ geometry_msgs::PoseStamped MAV::getPose(){return pose_current;}
 geometry_msgs::TwistStamped MAV::getVel(){return vel_current;}
 geometry_msgs::Vector3 MAV::getAcc(){return acc_current;}
 double MAV::getYaw(){return yaw;}
+void MAV::setPose_hz(float hz)
+{
+    pose_hz = hz;
+}
