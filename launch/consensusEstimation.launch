@@ -6,6 +6,7 @@
         <arg name="fusionNum" default="2"/>
         <arg name="stateSize" default="6"/>
         <arg name="targetTimeTol" default="0.05"/>
+        <arg name="Pose_hz" default="10"/>
 
         <group ns="$(arg vehicle)_1">
                 <param name="ID" value="1" />
@@ -14,6 +15,7 @@
                 <param name="rate" value="$(arg rate)"/>
                 <param name="consensus" value="$(arg consensus)"/>
                 <param name="targetTimeTol" value="$(arg targetTimeTol)"/>
+                <param name="pose_hz" value="$(arg Pose_hz)"/>
 
                 <node name="synchronizer" pkg="state_estimation" type="self_msg_sync"></node>
                 <node name="state_estimation" pkg="state_estimation" type="state_estimation" output="screen"></node>
@@ -25,6 +27,7 @@
                 <param name="rate" value="$(arg rate)"/>
                 <param name="consensus" value="$(arg consensus)"/>
                 <param name="targetTimeTol" value="$(arg targetTimeTol)"/>
+                <param name="Pose_hz" value="$(arg Pose_hz)"/>
 
                 <node name="synchronizer" pkg="state_estimation" type="self_msg_sync" ></node>
                 <node name="state_estimation" pkg="state_estimation" type="state_estimation" ></node>
@@ -36,6 +39,7 @@
                 <param name="rate" value="$(arg rate)"/>
                 <param name="consensus" value="$(arg consensus)"/>
                 <param name="targetTimeTol" value="$(arg targetTimeTol)"/>
+                <param name="Pose_hz" value="$(arg Pose_hz)"/>
 
                 <node name="synchronizer" pkg="state_estimation" type="self_msg_sync" ></node>
                 <node name="state_estimation" pkg="state_estimation" type="state_estimation" ></node>

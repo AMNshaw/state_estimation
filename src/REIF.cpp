@@ -12,6 +12,12 @@ robots_EIF::robots_EIF(int selfPointer, int MavNum) : EIF(selfPointer, MavNum)
 	for(int i=0; i < mavNum; i++)
 		if(i != self_pointer)
 	 		EIF_data_init(robots_state_size, robots_measurement_size, &Rbs[i]);
+
+	//////////////////////// Covariance Tuning ////////////////////////
+
+	Q.block(0, 0, 3, 3) = 7e-4*Eigen::MatrixXf::Identity(3, 3); // position
+	Q.block(3, 3, 3, 3) = 1e-2*Eigen::MatrixXf::Identity(3, 3); // velocity
+	Q.block(6, 6, 3, 3) = 5e-2*Eigen::MatrixXf::Identity(3, 3); //acceleration
 	
 }
 robots_EIF::~robots_EIF()

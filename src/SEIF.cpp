@@ -6,6 +6,13 @@ Self_acc_EIF::Self_acc_EIF(int selfPointer, int MavNum) : EIF(selfPointer, MavNu
 	self_state_size = 9;
 	self_measurement_size = 3;
 	EIF_data_init(self_state_size, self_measurement_size, &this->self);
+
+    //////////////////////// Covariance Tuning ////////////////////////
+
+    Q.block(0, 0, 3, 3) = 7e-4*Eigen::MatrixXf::Identity(3, 3); // position
+    Q.block(3, 3, 3, 3) = 3e-3*Eigen::MatrixXf::Identity(3, 3); // velocity
+	Q.block(6, 6, 3, 3) = 1e-2*Eigen::MatrixXf::Identity(3, 3); //acceleration
+
 }
 Self_acc_EIF::~Self_acc_EIF(){}
 

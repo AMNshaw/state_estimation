@@ -85,3 +85,13 @@ state_estimation::RMSE compare(Eigen::VectorXf GT, Eigen::VectorXf est)
 	RMSE_data.RMSE_v = E_v.norm();
 	return RMSE_data;
 }
+
+void state2MavEigen(Eigen::VectorXf state, MAV_eigen& ME)
+{
+	ME.r = state.segment(0, 3);
+	if(state.size() >= 6)
+		ME.v = state.segment(3, 3);
+	if(state.size() >= 9)
+		ME.a = state.segment(6, 3);
+
+}

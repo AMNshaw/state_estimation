@@ -68,5 +68,16 @@ geometry_msgs::Vector3 MAV::getAcc(){return acc_current;}
 double MAV::getYaw(){return yaw;}
 void MAV::setPose_hz(float hz)
 {
+    // if(hz > 30)
+    // {
+    //     ROS_INFO("Pose hz out of range, set to 30");
+    //     pose_hz = 30;
+    // }
+    // else if(hz < 30 && hz > 0)
     pose_hz = hz;
+    // else
+    // {
+    //     ROS_INFO("Pose hz out of range, set to 1");
+    //     pose_hz = 1;
+    // }
 }

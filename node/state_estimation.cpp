@@ -225,28 +225,30 @@ int main(int argc, char **argv)
 	bool est_target_acc = false;
     bool consensus = false;
 	int mavNum = 3;
-    int hz;
+    int rosRate;
 	int ID = 0;
 	int state_size = 6;
 	float targetTimeTol = 0.05;
+	float pose_hz = 30;
     ros::param::get("vehicle", vehicle);
 	ros::param::get("ID", ID);
-    ros::param::get("rate", hz);
+    ros::param::get("rate", rosRate);
 	ros::param::get("consensus", consensus);
 	ros::param::get("stateSize", state_size);
 	ros::param::get("targetTimeTol", targetTimeTol);
+	ros::param::get("pose_hz", pose_hz);
 	double last_t;
 	double dt;
 	MAV::self_index = ID-1;
 
-	ros::Rate rate(hz);
+	ros::Rate rate(rosRate);
 
 	MAV Mavs[] = {MAV(nh, vehicle, 1),
 				MAV(nh, vehicle, 2),
 				MAV(nh, vehicle, 3)};
 	mavNum = sizeof(Mavs)/sizeof(Mavs[0]);
 	for(int i=0; i< mavNum; i++)
-		Mavs[i].setPose_hz(2);
+		Mavs[i].setPose_hz(pose_hz);
 	
 	std::vector<MAV_eigen> Mavs_eigen(mavNum);
 	Data_process dp(nh, vehicle, ID, mavNum);
@@ -315,6 +317,7 @@ int main(int argc, char **argv)
 		{
 			std::cout << "TEIF:\n";
 			std::vector<EIF_data> allTgtEIFData;
+			state2MavEigen(selfState_HEIF.getFusedState(), Mavs_eigen[MAV::self_index]);
 			Teif.setData(Mavs_eigen[MAV::self_index], dp.bboxMsg2Eigen());
 			Teif.computePredPairs(dt, Reif.getRbsData());
 			Teif.computeCorrPairs();
@@ -324,7 +327,6 @@ int main(int argc, char **argv)
 			targetState_HEIF.setData(allTgtEIFData);
 			targetState_HEIF.process();
 			Teif.setFusionPairs(targetState_HEIF.getFusedCov(), targetState_HEIF.getFusedState());
-			//dp.tgtState_RMSE_pub.publish(compare(dp.targetState_GT, Teif.getTgtData().X));
 			dp.tgtState_RMSE_pub.publish(compare(dp.targetState_GT, targetState_HEIF.getFusedState()));
 		}
 
