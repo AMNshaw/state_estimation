@@ -10,8 +10,8 @@ Self_acc_EIF::Self_acc_EIF(int selfPointer, int MavNum) : EIF(selfPointer, MavNu
     //////////////////////// Covariance Tuning ////////////////////////
 
     Q.block(0, 0, 3, 3) = 7e-4*Eigen::MatrixXf::Identity(3, 3); // position
-    Q.block(3, 3, 3, 3) = 3e-3*Eigen::MatrixXf::Identity(3, 3); // velocity
-	Q.block(6, 6, 3, 3) = 1e-2*Eigen::MatrixXf::Identity(3, 3); //acceleration
+    Q.block(3, 3, 3, 3) = 7e-4*Eigen::MatrixXf::Identity(3, 3); // velocity
+	Q.block(6, 6, 3, 3) = 1e-1*Eigen::MatrixXf::Identity(3, 3); //acceleration
 
 }
 Self_acc_EIF::~Self_acc_EIF(){}
@@ -64,7 +64,9 @@ void Self_acc_EIF::setFusionPairs(Eigen::MatrixXf fusedP, Eigen::VectorXf fusedX
     self.X = fusedX;
 }
 
-void Self_acc_EIF::setCurrPose(Eigen::VectorXf pose)
+void Self_acc_EIF::setCurrState(MAV_eigen MAV)
 {
-    self.X.segment(0, 3) = pose;
+    self.X.segment(0, 3) = MAV.r;
+    self.X.segment(3, 3) = MAV.v;
+    self.X.segment(6, 3) = MAV.a;
 }

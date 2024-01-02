@@ -276,11 +276,16 @@ int main(int argc, char **argv)
 		rate.sleep();
 		ros::spinOnce();
 	}
+	for(int i=0; i< 20; i++)
+	{
+		rate.sleep();
+		ros::spinOnce();
+	}
 	printf("\n[%s_%i EIF]: Topics all checked\n", vehicle.c_str(), ID);
 	
 	Self_acc_EIF Seif(MAV::self_index, mavNum);
 	Mavs_eigen = mavsMsg2Eigen(Mavs, mavNum);
-	Seif.setCurrPose(Mavs_eigen[MAV::self_index].r);
+	Seif.setCurrState(Mavs_eigen[MAV::self_index]);
 	robots_EIF Reif(MAV::self_index, mavNum);
 	target_EIF Teif(state_size, MAV::self_index, mavNum);
 	HEIF selfState_HEIF(state_size);
@@ -302,22 +307,25 @@ int main(int argc, char **argv)
 		selfState_HEIF.setData(dp.get_curr_fusing_data(dp.getRbs2SelfEIFmsg(), 0.03), Seif.getSelfData());
 		selfState_HEIF.process();
 		Seif.setFusionPairs(selfState_HEIF.getFusedCov(), selfState_HEIF.getFusedState());
-		dp.selfState_RMSE_pub.publish(compare(Mavs_eigen[MAV::self_index], Seif.getSelfData().X));
+		dp.selfState_RMSE_pub.publish(compare(Mavs_eigen[MAV::self_index], selfState_HEIF.getFusedState()));
 		////////////////////////////////// Other Robots EIF //////////////////////////////////
-		Reif.setData(Mavs_eigen);
+		if(consensus)
+			Reif.setData(Mavs_eigen, selfState_HEIF.getFusedState());
+		else
+			Reif.setData(Mavs_eigen);
 		Reif.computePredPairs(dt);
 		Reif.computeCorrPairs();
 		for(int i=0; i<mavNum; i++)
 			if(i != MAV::self_index)
 				dp.self2RbsEIFpairs_pub[i].publish(eigen2EifMsg(Reif.getRbsData()[i], ID));
-		//dp.selfState_RMSE_pub.publish(compare(Mavs_eigen[1], Reif.getRbsData()[1].X));
 
 		//////////////////////////////////// Target_EIF /////////////////////////////////////
 		if(dp.gotBbox)
 		{
 			std::cout << "TEIF:\n";
 			std::vector<EIF_data> allTgtEIFData;
-			state2MavEigen(selfState_HEIF.getFusedState(), Mavs_eigen[MAV::self_index]);
+			if(consensus)
+				state2MavEigen(selfState_HEIF.getFusedState(), Mavs_eigen[MAV::self_index]);
 			Teif.setData(Mavs_eigen[MAV::self_index], dp.bboxMsg2Eigen());
 			Teif.computePredPairs(dt, Reif.getRbsData());
 			Teif.computeCorrPairs();

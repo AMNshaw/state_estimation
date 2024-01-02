@@ -17,7 +17,7 @@ robots_EIF::robots_EIF(int selfPointer, int MavNum) : EIF(selfPointer, MavNum)
 
 	Q.block(0, 0, 3, 3) = 7e-4*Eigen::MatrixXf::Identity(3, 3); // position
 	Q.block(3, 3, 3, 3) = 1e-2*Eigen::MatrixXf::Identity(3, 3); // velocity
-	Q.block(6, 6, 3, 3) = 5e-2*Eigen::MatrixXf::Identity(3, 3); //acceleration
+	Q.block(6, 6, 3, 3) = 7e-2*Eigen::MatrixXf::Identity(3, 3); //acceleration
 	
 }
 robots_EIF::~robots_EIF()
@@ -28,7 +28,12 @@ robots_EIF::~robots_EIF()
 void robots_EIF::setData(std::vector<MAV_eigen> MAVs)
 {
 	Mavs_curr = MAVs;
-	Mavs_curr[self_pointer].r_c = Mavs_curr[self_pointer].r + Mavs_curr[self_pointer].R_w2b.inverse()*t_b2c;
+}
+
+void robots_EIF::setData(std::vector<MAV_eigen> MAVs, Eigen::VectorXf self_state)
+{
+	Mavs_curr = MAVs;
+	Mavs_curr[self_pointer].r = self_state.segment(0, 3);
 }
 
 EIF_data* robots_EIF::getRbsData(){return Rbs;}
@@ -58,9 +63,9 @@ void robots_EIF::computeCorrPairs()
 	{
 		if(i!=self_pointer)
 		{
-			Eigen::VectorXf rcj_ci = Mavs_curr[i].r - Mavs_curr[self_pointer].r_c;
-			Rbs[i].z.segment(0, 3) = rcj_ci;
-			Rbs[i].z.segment(3, 3) = Mavs_curr[self_pointer].r_c + rcj_ci;
+			Eigen::VectorXf rpj_pi = Mavs_curr[i].r - Mavs_curr[self_pointer].r;
+			Rbs[i].z.segment(0, 3) = rpj_pi;
+			Rbs[i].z.segment(3, 3) = Mavs_curr[self_pointer].r + rpj_pi;
 
 			if(Rbs[i].z == Rbs[i].pre_z)
 			{
@@ -69,7 +74,7 @@ void robots_EIF::computeCorrPairs()
 			}
 			else
 			{		
-				Rbs[i].h.segment(0, 3) = Rbs[i].X_hat.segment(0, 3) - Mavs_curr[self_pointer].r_c;
+				Rbs[i].h.segment(0, 3) = Rbs[i].X_hat.segment(0, 3) - Mavs_curr[self_pointer].r;
 				Rbs[i].h.segment(3, 3) = Rbs[i].X_hat.segment(0, 3);
 				
 				Rbs[i].H.block(0, 0, 3, 3) = Eigen::Matrix3f::Identity(3, 3);

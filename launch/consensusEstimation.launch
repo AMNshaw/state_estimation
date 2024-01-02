@@ -1,12 +1,12 @@
 <?xml version="1.0"?>
 <launch>
         <arg name="vehicle" default="iris"/>
-        <arg name="consensus" default="false"/>
+        <arg name="consensus" default="true"/>
         <arg name="rate" default="50"/>
         <arg name="fusionNum" default="2"/>
         <arg name="stateSize" default="6"/>
         <arg name="targetTimeTol" default="0.05"/>
-        <arg name="Pose_hz" default="10"/>
+        <arg name="Pose_hz" default="30"/>
 
         <group ns="$(arg vehicle)_1">
                 <param name="ID" value="1" />

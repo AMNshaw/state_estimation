@@ -14,6 +14,6 @@ public:
     void computeCorrPairs();
     void setData(MAV_eigen MAV);
     void setFusionPairs(Eigen::MatrixXf fusedP, Eigen::VectorXf fusedX);
-    void setCurrPose(Eigen::VectorXf pose);
+    void setCurrState(MAV_eigen MAV);
     EIF_data getSelfData();
 };
