@@ -42,21 +42,13 @@ def plot_data_v(timeStamps, RMSE_v, title):
 
 def plotFromBag(bag, name):
     
-    timestamps, EIF_1_RMSE_p, EIF_1_RMSE_v = extract_data(bag, '/iris_1/TEIF/RMSE')
+    timestamps, EIF_1_RMSE_p, EIF_1_RMSE_v = extract_data(bag, '/iris_1/SHEIF/RMSE')
     bag.close()
     plot_data_p(timestamps, EIF_1_RMSE_p, name)
     plot_data_v(timestamps, EIF_1_RMSE_v, name)
 
 folder = '/home/ncrl/gazebo_sim_ws/src/state_estimation/bag/'
 
-file = folder + 'TEIF_tol005.bag'
+file = folder + 'SHEIF_3hz.bag'
 bag = rosbag.Bag(file)
-plotFromBag(bag, 'TEIF tolerance 0.05s')
-
-file = folder + 'TEIF_tol003.bag'
-bag = rosbag.Bag(file)
-plotFromBag(bag, 'TEIF tolerance 0.03s')
-
-file = folder + 'TEIF_tol001.bag'
-bag = rosbag.Bag(file)
-plotFromBag(bag, 'TEIF tolerance 0.01s')
+plotFromBag(bag, 'SHEIF pose rate 3hz')

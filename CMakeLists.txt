@@ -193,17 +193,6 @@ target_link_libraries(self_msg_sync
 target_include_directories(self_msg_sync PRIVATE
   include/${PROJECT_NAME}/ ) 
 
-#consensus_state_estimation
-add_executable(consensus_state_estimation 
-  node/consensus_state_estimation.cpp
-  )
-target_link_libraries(consensus_state_estimation
-  ${catkin_LIBRARIES} 
-  EIF)
-target_include_directories(consensus_state_estimation PRIVATE
-  include/${PROJECT_NAME}/ ) 
-
-
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
 ## either from message generation or dynamic reconfigure

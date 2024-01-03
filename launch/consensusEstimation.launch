@@ -6,7 +6,7 @@
         <arg name="fusionNum" default="2"/>
         <arg name="stateSize" default="6"/>
         <arg name="targetTimeTol" default="0.05"/>
-        <arg name="Pose_hz" default="30"/>
+        <arg name="Pose_hz" default="3"/>
 
         <group ns="$(arg vehicle)_1">
                 <param name="ID" value="1" />

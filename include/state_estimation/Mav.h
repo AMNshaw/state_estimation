@@ -1,5 +1,3 @@
-#ifndef MAV_H
-#define MAV_H
 #pragma once
 
 #include <cmath>
@@ -72,5 +70,3 @@ struct MAV_eigen
 	Eigen::Vector3f omega_c;
 	Eigen::Matrix3f R_w2b;
 };
-
-#endif
