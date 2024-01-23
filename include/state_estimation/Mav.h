@@ -1,3 +1,5 @@
+#ifndef MAV_H
+#define MAV_H
 #pragma once
 
 #include <cmath>
@@ -49,6 +51,9 @@ public:
     mavros_msgs::State getCurrentState();
     double getYaw();
     void setPose_hz(float hz);
+    void setPose(geometry_msgs::Pose Pose);
+    void setTwist(geometry_msgs::Twist Twist);
+    void getRPY(float& R, float& P, float& Y);
 
     string topic;
     int id;
@@ -69,4 +74,7 @@ struct MAV_eigen
 	Eigen::Vector3f a;
 	Eigen::Vector3f omega_c;
 	Eigen::Matrix3f R_w2b;
+    Eigen::Vector3f RPY;
 };
+
+#endif

@@ -5,11 +5,10 @@
 #include <Eigen/Dense>
 #include <vector>
 #include "EIF.h"
-#include <dlib/optimization.h>
 
 class HEIF
 {
-private:
+protected:
 
 	Eigen::MatrixXf weightedOmega_hat;
 	Eigen::MatrixXf weightedS;
@@ -17,26 +16,14 @@ private:
 	Eigen::VectorXf weightedY;
 	Eigen::MatrixXf fusedP;
 	Eigen::VectorXf fusedX;
-	Eigen::MatrixXf K;
-	Eigen::MatrixXf L;
-	Eigen::MatrixXf Gamma;
-
-	std::vector<EIF_data> est_data;
-	EIF_data self_est;
 
 	int fusionNum;
 	int state_size;
 public:
-	HEIF(int stateSize);
+	HEIF(int x_size);
 	~HEIF();
-	void setData(std::vector<EIF_data> est_Data);
-	void setData(std::vector<EIF_data> est_Data, EIF_data self);
-	void process();
-	void CI();
-	void CI_combination();
-	void CI_combination_with_selfEst();
-	double ICI_optimize_func(double weight);
-	void ICI();
+	void initialize();
+	virtual void CI_combination();
 	Eigen::MatrixXf getFusedCov();
 	Eigen::VectorXf getFusedState();
 };

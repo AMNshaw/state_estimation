@@ -28,14 +28,18 @@ MAV::MAV(ros::NodeHandle &nh_, string vehicle, int ID)
 void MAV::pose_cb(const geometry_msgs::PoseStamped::ConstPtr& msg)
 {
     if(!pose_init)
+    {
         pose_init = true;
-    topic_count++;
-    if(topic_count >= 30/pose_hz)
+        pose_current = *msg;
+    }
+    
+    if(pose_hz != 0)
+        topic_count++;
+    if(topic_count >= 30/pose_hz && pose_hz != 0)
     {
         pose_current = *msg;
         topic_count = 0;
     }
-        
 }
 
 void MAV::vel_cb(const geometry_msgs::TwistStamped::ConstPtr& msg)
@@ -66,18 +70,31 @@ geometry_msgs::PoseStamped MAV::getPose(){return pose_current;}
 geometry_msgs::TwistStamped MAV::getVel(){return vel_current;}
 geometry_msgs::Vector3 MAV::getAcc(){return acc_current;}
 double MAV::getYaw(){return yaw;}
-void MAV::setPose_hz(float hz)
+void MAV::setPose_hz(float hz){pose_hz = hz;}
+
+void MAV::setPose(geometry_msgs::Pose Pose)
 {
-    // if(hz > 30)
-    // {
-    //     ROS_INFO("Pose hz out of range, set to 30");
-    //     pose_hz = 30;
-    // }
-    // else if(hz < 30 && hz > 0)
-    pose_hz = hz;
-    // else
-    // {
-    //     ROS_INFO("Pose hz out of range, set to 1");
-    //     pose_hz = 1;
-    // }
+    pose_current.header.stamp = ros::Time::now();
+
+    pose_current.pose = Pose;
+    tf::Quaternion Q(
+        pose_current.pose.orientation.x,
+        pose_current.pose.orientation.y,
+        pose_current.pose.orientation.z,
+        pose_current.pose.orientation.w);
+    tf::Matrix3x3(Q).getRPY(roll,pitch,yaw);
+    
+}
+void MAV::setTwist(geometry_msgs::Twist Twist)
+{
+    vel_current.header.stamp = ros::Time::now();
+
+    vel_current.twist = Twist;
+}
+
+void MAV::getRPY(float& R, float& P, float& Y)
+{
+    R = static_cast<float>(roll);
+    P = static_cast<float>(pitch);
+    Y = static_cast<float>(yaw);
 }

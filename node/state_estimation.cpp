@@ -1,6 +1,8 @@
 #include <string>
 #include <sstream>
 #include <vector>
+#include <cctype>
+#include <cmath>
 
 #include <Eigen/Dense>
 #include <ros/ros.h>
@@ -13,33 +15,30 @@
 #include <state_estimation/RMSE.h>
 #include <geometry_msgs/Quaternion.h>
 #include <geometry_msgs/Vector3.h>
+#include <gazebo_msgs/ModelStates.h>
 
 #include "Mav.h"
-#include "EIF.h"
 #include "TEIF.h"
-#include "REIF.h"
-#include "SEIF.h"
-#include "HEIF.h"
+#include "HEIF_self.h"
+#include "HEIF_target.h"
 #include "CommonFuncs.h"
-
+#include "SEIF_pose.h"
+#include "SEIF_neighbors.h"
 
 class Data_process
 {
 private:
 	ros::Subscriber bboxes_sub;
-	ros::Subscriber targetPose_sub;
-	ros::Subscriber targetVel_sub;
 	ros::Subscriber tgtFusedPair_sub;
-	ros::Subscriber* rbs2SelfEIFpairs_sub;
+	ros::Subscriber* neighborsEIFpairs_sub;
 	ros::Subscriber* rbs2TgtEIFpairs_sub;
+	ros::Subscriber groundTruth_sub;
 
 	std::string bbox_topic;
-	std::string targetPose_topic;
-	std::string targetVel_topic;
-	std::string* self2RbsEIFpairs_pub_topic;
-	std::string* rbs2SelfEIFpairs_sub_topic;
+	std::string* neighborsEIFpairs_sub_topic;
 	std::string self2TgtEIFpairs_pub_topic;
 	std::string* rbs2TgtEIFpairs_sub_topic;
+	std::string selfPredEIFpairs_pub_topic;
 	std::string tgtStateRMSE_topic;
 	std::string selfStateRMSE_topic;
 
@@ -47,6 +46,8 @@ private:
 	int mavNum;
 	int self_id;
 	int self_index;
+	int lidar_hz;
+	int lidar_count;
 public:
 	Data_process(ros::NodeHandle &nh, string vehicle, int ID, int mavnum);
 	~Data_process();
@@ -54,30 +55,29 @@ public:
 	ros::Publisher tgtState_RMSE_pub;
 	ros::Publisher selfState_RMSE_pub;
 	ros::Publisher self2TgtEIFpairs_pub;
-	ros::Publisher* self2RbsEIFpairs_pub;
+	ros::Publisher selfPredEIFpairs_pub;
 
 	std_msgs::Header sync_header;
-	state_estimation::EIFpairStamped* rbs2Self_EIFPairs;
+	state_estimation::EIFpairStamped* neighborsEIFpairs;
 	state_estimation::EIFpairStamped* rbs2Tgt_EIFPairs;
 	std::vector<EIF_data> est_data;
 
-	Eigen::VectorXf targetState_GT;
+	std::vector<Eigen::Vector4f> lidarMeasurements;
+	std::vector<MAV> GT;
+	std::vector<MAV_eigen> GT_eigen;
 	std::vector<float> bboxes;
 	bool gotBbox;
 	bool gotFusedPair;
 
 	void bboxes_cb(const std_msgs::Float32MultiArray::ConstPtr& msg);
-	void rbs2SelfEIFpair_cb(const state_estimation::EIFpairStamped::ConstPtr& msg);
+	void neighborsEIFpair_cb(const state_estimation::EIFpairStamped::ConstPtr& msg);
 	void rbs2TgtEIFpair_cb(const state_estimation::EIFpairStamped::ConstPtr& msg);
-	void targetPose_cb(const geometry_msgs::PoseStamped::ConstPtr& msg);
-	void targetVel_cb(const geometry_msgs::TwistStamped::ConstPtr& msg);
+	void groundTruth_cb(const gazebo_msgs::ModelStates::ConstPtr& msg);
 
 	void set_topic(std::string group_ns, int id);
 	Eigen::Vector3f bboxMsg2Eigen();
 	std::vector<EIF_data> get_curr_fusing_data(state_estimation::EIFpairStamped* EIFPairs, float tolerance);
-	state_estimation::EIFpairStamped* getRbs2SelfEIFmsg();
-	state_estimation::EIFpairStamped* getRbs2TgtEIFmsg();
-
+	std::vector<Eigen::Vector4f> lidarMeasure(std::vector<MAV_eigen> mav_eigen);
 };
 
 Data_process::Data_process(ros::NodeHandle &nh, string vehicle, int ID, int mavnum)
@@ -86,23 +86,25 @@ Data_process::Data_process(ros::NodeHandle &nh, string vehicle, int ID, int mavn
 	self_index = ID-1;
 	mavNum = mavnum;
 	set_topic(vehicle, self_id);
+	lidar_hz = 5;
+	lidar_count = 0;
 
 	gotBbox  = false;
 	gotFusedPair = false;
-	rbs2Self_EIFPairs = new state_estimation::EIFpairStamped[mavNum];
+	neighborsEIFpairs = new state_estimation::EIFpairStamped[mavNum];
 	rbs2Tgt_EIFPairs = new state_estimation::EIFpairStamped[mavNum];
+	GT.resize(mavNum+1);
 
 	/////////////////////////////////////////////////Subscriber/////////////////////////////////////////////////
 	bboxes_sub = nh.subscribe<std_msgs::Float32MultiArray>(bbox_topic, 2, &Data_process::bboxes_cb, this);
-	targetPose_sub = nh.subscribe<geometry_msgs::PoseStamped>(targetPose_topic, 2, &Data_process::targetPose_cb, this);
-	targetVel_sub = nh.subscribe<geometry_msgs::TwistStamped>(targetVel_topic, 2, &Data_process::targetVel_cb, this);
+	groundTruth_sub = nh.subscribe<gazebo_msgs::ModelStates>("/gazebo/model_states", 30, &Data_process::groundTruth_cb, this);
 
-	rbs2SelfEIFpairs_sub = new ros::Subscriber[mavNum];
+	neighborsEIFpairs_sub = new ros::Subscriber[mavNum];
 	rbs2TgtEIFpairs_sub = new ros::Subscriber[mavNum];
 	for(int i=0; i<mavNum; i++)
 		if(i != self_index)
 		{
-			rbs2SelfEIFpairs_sub[i] = nh.subscribe<state_estimation::EIFpairStamped>(rbs2SelfEIFpairs_sub_topic[i], 1, &Data_process::rbs2SelfEIFpair_cb, this);
+			neighborsEIFpairs_sub[i] = nh.subscribe<state_estimation::EIFpairStamped>(neighborsEIFpairs_sub_topic[i], 1, &Data_process::neighborsEIFpair_cb, this);
 			rbs2TgtEIFpairs_sub[i] = nh.subscribe<state_estimation::EIFpairStamped>(rbs2TgtEIFpairs_sub_topic[i], 1, &Data_process::rbs2TgtEIFpair_cb, this);
 		}
 
@@ -111,56 +113,42 @@ Data_process::Data_process(ros::NodeHandle &nh, string vehicle, int ID, int mavn
 	tgtState_RMSE_pub = nh.advertise<state_estimation::RMSE>(tgtStateRMSE_topic, 1);
 	selfState_RMSE_pub = nh.advertise<state_estimation::RMSE>(selfStateRMSE_topic, 1);
 	self2TgtEIFpairs_pub = nh.advertise<state_estimation::EIFpairStamped>(self2TgtEIFpairs_pub_topic, 1);
-
-	self2RbsEIFpairs_pub = new ros::Publisher[mavNum];
-	for(int i=0; i<mavNum; i++)
-	 	if(i != self_index)
-			self2RbsEIFpairs_pub[i] = nh.advertise<state_estimation::EIFpairStamped>(self2RbsEIFpairs_pub_topic[i], 1);	
+	selfPredEIFpairs_pub = nh.advertise<state_estimation::EIFpairStamped>(selfPredEIFpairs_pub_topic, 1);
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	
-	targetState_GT.resize(6);
 }
 
 Data_process::~Data_process()
 {
-	delete[] self2RbsEIFpairs_pub_topic;
-	delete[] rbs2SelfEIFpairs_sub_topic;
+	delete[] neighborsEIFpairs_sub_topic;
 	delete[] rbs2TgtEIFpairs_sub_topic;
 
-	delete[] self2RbsEIFpairs_pub;
-	delete[] rbs2SelfEIFpairs_sub;
+	delete[] neighborsEIFpairs_sub;
 	delete[] rbs2TgtEIFpairs_sub;
 
-	delete[] rbs2Self_EIFPairs;
+	delete[] neighborsEIFpairs;
 	delete[] rbs2Tgt_EIFPairs;
 }
 
 void Data_process::set_topic(std::string vehicle, int id)
 {
-	bbox_topic = std::string("/") + vehicle + std::string("_") + std::to_string(id) + std::string("/synchronizer/yolov7/boundingBox");
-	self2TgtEIFpairs_pub_topic = std::string("/") + vehicle + std::string("_") + std::to_string(id) + std::string("/TEIF/fusionPairs");
-	tgtStateRMSE_topic = std::string("/") + vehicle + std::string("_") + std::to_string(id) + std::string("/TEIF/RMSE");
-	selfStateRMSE_topic = std::string("/") + vehicle + std::string("_") + std::to_string(id) + std::string("/SHEIF/RMSE");
+	string prefix = std::string("/") + vehicle + std::string("_") + std::to_string(id);
+	bbox_topic = prefix + std::string("/synchronizer/yolov7/boundingBox");
+	self2TgtEIFpairs_pub_topic = prefix + std::string("/TEIF/fusionPairs");
+	tgtStateRMSE_topic = prefix + std::string("/TEIF/RMSE");
+	selfStateRMSE_topic = prefix + std::string("/SHEIF/RMSE");
+	selfPredEIFpairs_pub_topic = prefix + std::string("/SEIF_pred/fusionPairs");
 
-	targetPose_topic = std::string("/target/mavros/local_position/pose_initialized");
-	targetVel_topic = std::string("/target/mavros/local_position/velocity_local");
-
-	self2RbsEIFpairs_pub_topic = new std::string[mavNum];
-	rbs2SelfEIFpairs_sub_topic = new std::string[mavNum];
+	neighborsEIFpairs_sub_topic = new std::string[mavNum];
 	rbs2TgtEIFpairs_sub_topic = new std::string[mavNum];
 	for(int i=0; i<mavNum; i++)
 		if(i != self_index)
 		{
-			self2RbsEIFpairs_pub_topic[i] = std::string("/") + vehicle + std::string("_") + std::to_string(id)
-			+ std::string("/REIF_") + std::to_string(i+1) + std::string("/fusionPairs");
-			rbs2SelfEIFpairs_sub_topic[i] = std::string("/") + vehicle + std::string("_") + std::to_string(i+1)
-			+ std::string("/REIF_") + std::to_string(id) + std::string("/fusionPairs");
+			neighborsEIFpairs_sub_topic[i] = std::string("/") + vehicle + std::string("_") + std::to_string(i+1)
+			+ std::string("/SEIF_pred/fusionPairs");
 			rbs2TgtEIFpairs_sub_topic[i] = std::string("/") + vehicle + std::string("_") + std::to_string(i+1)
 			+ std::string("/TEIF") + std::string("/fusionPairs");
-			std::cout << rbs2TgtEIFpairs_sub_topic[i] << "\n";
 		}
 }
-
 
 Eigen::Vector3f Data_process::bboxMsg2Eigen()
 {
@@ -176,14 +164,15 @@ std::vector<EIF_data> Data_process::get_curr_fusing_data(state_estimation::EIFpa
 	{
 		if(abs(EIFPairs[i].header.stamp.toSec() - ros::Time::now().toSec()) <= tolerance)
 			est_data.push_back(eifMsg2Eigen(EIFPairs[i]));
+
 	}
 	return est_data;
 }
 
-void Data_process::rbs2SelfEIFpair_cb(const state_estimation::EIFpairStamped::ConstPtr& msg)
+void Data_process::neighborsEIFpair_cb(const state_estimation::EIFpairStamped::ConstPtr& msg)
 {
 	int index = msg->id-1;
-	rbs2Self_EIFPairs[index] = *msg;
+	neighborsEIFpairs[index] = *msg;
 }
 
 void Data_process::rbs2TgtEIFpair_cb(const state_estimation::EIFpairStamped::ConstPtr& msg)
@@ -199,22 +188,53 @@ void Data_process::bboxes_cb(const std_msgs::Float32MultiArray::ConstPtr& msg)
 	bboxes = msg->data;
 }
 
-void Data_process::targetPose_cb(const geometry_msgs::PoseStamped::ConstPtr& msg)
+void Data_process::groundTruth_cb(const gazebo_msgs::ModelStates::ConstPtr& msg)
 {
-	targetState_GT(0) = msg->pose.position.x;
-	targetState_GT(1) = msg->pose.position.y;
-	targetState_GT(2) = msg->pose.position.z;
+	lidar_count++;
+	std::vector<string> name = msg->name;
+	for(int i=0; i< name.size(); i++)
+	{
+		if(std::isdigit(name[i].back()))
+		{
+			GT[int(name[i].back()-'0')].setPose(msg->pose[i]);
+			GT[int(name[i].back()-'0')].setTwist(msg->twist[i]);
+		}
+	}
+	std::vector<MAV> nearRobots(GT.begin()+1, GT.begin()+GT.size());
+	GT_eigen = mavsMsg2Eigen(GT);
+
+	if(lidar_count == 500/lidar_hz)
+	{
+		lidarMeasurements = lidarMeasure(mavsMsg2Eigen(nearRobots));
+		lidar_count = 0;
+	}
+
 }
 
-void Data_process::targetVel_cb(const geometry_msgs::TwistStamped::ConstPtr& msg)
+std::vector<Eigen::Vector4f> Data_process::lidarMeasure(std::vector<MAV_eigen> mav_eigen)
 {
-	targetState_GT(3) = msg->twist.linear.x;
-	targetState_GT(4) = msg->twist.linear.y;
-	targetState_GT(5) = msg->twist.linear.z;
+	Eigen::Vector4f measurement;
+	std::vector<Eigen::Vector4f> measurements;
+	for(int i=0; i<mavNum; i++)
+	{
+		if(i != self_index)
+		{
+			// measurement(0) = sqrt(pow(mav_eigen[i].r(0)-mav_eigen[self_index].r(0), 2)  // r
+			// + pow(mav_eigen[i].r(1)-mav_eigen[self_index].r(1), 2) 
+			// + pow(mav_eigen[i].r(2)-mav_eigen[self_index].r(2), 2)); 
+			// measurement(1) = std::acos((mav_eigen[i].r(2)-mav_eigen[self_index].r(2))/measurement(0)) - (mav_eigen[self_index].RPY(1) + M_PI_2); // theta
+			// measurement(2) = std::atan2(mav_eigen[i].r(1)-mav_eigen[self_index].r(1), mav_eigen[i].r(0)-mav_eigen[self_index].r(0)) - mav_eigen[self_index].RPY(2); // phi
+			
+			measurement.segment(0, 3) = mav_eigen[i].r - mav_eigen[self_index].r;
+
+			measurement(3) = i+1; // ID
+			measurements.push_back(measurement);
+		}
+	}
+	return measurements;
 }
 
-state_estimation::EIFpairStamped* Data_process::getRbs2SelfEIFmsg(){return rbs2Self_EIFPairs;}
-state_estimation::EIFpairStamped* Data_process::getRbs2TgtEIFmsg(){return rbs2Tgt_EIFPairs;}
+using namespace std;
 
 int main(int argc, char **argv)
 {
@@ -237,59 +257,55 @@ int main(int argc, char **argv)
 	ros::param::get("stateSize", state_size);
 	ros::param::get("targetTimeTol", targetTimeTol);
 	ros::param::get("pose_hz", pose_hz);
+	cout << "POSE_HZ: " << pose_hz << "\n";
 	double last_t;
 	double dt;
 	MAV::self_index = ID-1;
 
 	ros::Rate rate(rosRate);
 
-	MAV Mavs[] = {MAV(nh, vehicle, 1),
-				MAV(nh, vehicle, 2),
-				MAV(nh, vehicle, 3)};
-	mavNum = sizeof(Mavs)/sizeof(Mavs[0]);
-	for(int i=0; i< mavNum; i++)
-		Mavs[i].setPose_hz(pose_hz);
+	MAV mav(nh, vehicle, ID);
+	mav.setPose_hz(pose_hz);
 	
-	std::vector<MAV_eigen> Mavs_eigen(mavNum);
+	MAV_eigen mav_eigen;
 	Data_process dp(nh, vehicle, ID, mavNum);
 
 	while(ros::ok())
 	{
 		int topics_count = 0;
-		for(int i = 0; i < mavNum; i++)
-		{
-			if(Mavs[i].pose_init)
-				topics_count ++;
-			else
-				printf("[%s_%i]: Waiting for Pose topic...\n", vehicle.c_str(), i+1);
-			if(Mavs[i].vel_init)
-				topics_count ++;
-			else
-				printf("[%s_%i]: Waiting for Vel topic...\n", vehicle.c_str(), i+1);
-			if(Mavs[i].imu_init)
-				topics_count ++;
-			else
-				printf("[%s_%i]: Waiting for Imu topic...\n", vehicle.c_str(), i+1);
-		}
-		if(topics_count == mavNum*3)
+		if(mav.pose_init)
+			topics_count ++;
+		else
+			printf("[%s_%i]: Waiting for Pose topic...\n", vehicle.c_str(), ID);
+		if(mav.vel_init)
+			topics_count ++;
+		else
+			printf("[%s_%i]: Waiting for Vel topic...\n", vehicle.c_str(), ID);
+		if(mav.imu_init)
+			topics_count ++;
+		else
+			printf("[%s_%i]: Waiting for Imu topic...\n", vehicle.c_str(), ID);
+		if(topics_count == 3)
 			break;
+
 		rate.sleep();
 		ros::spinOnce();
 	}
-	for(int i=0; i< 20; i++)
+	for(int i=0; i< 50; i++)
 	{
 		rate.sleep();
 		ros::spinOnce();
 	}
 	printf("\n[%s_%i EIF]: Topics all checked\n", vehicle.c_str(), ID);
 	
-	Self_acc_EIF Seif(MAV::self_index, mavNum);
-	Mavs_eigen = mavsMsg2Eigen(Mavs, mavNum);
-	Seif.setCurrState(Mavs_eigen[MAV::self_index]);
-	robots_EIF Reif(MAV::self_index, mavNum);
-	target_EIF Teif(state_size, MAV::self_index, mavNum);
-	HEIF selfState_HEIF(state_size);
-	HEIF targetState_HEIF(state_size);
+	Self_pose_EIF SEIF_pose;
+	Self_rel_EIF SEIF_neighbors;
+	target_EIF teif(6);
+	HEIF_self sheif(6);
+	HEIF_target theif(6);
+
+	mav_eigen = mavMsg2Eigen(mav);
+	SEIF_pose.setCurrState(mav_eigen);
 
 	printf("\n[%s_%i EIF]: EIF constructed\n\n", vehicle.c_str(), ID);
 	
@@ -297,47 +313,54 @@ int main(int argc, char **argv)
 	dt = 0.001;
     while(ros::ok())
     {
-		Mavs_eigen = mavsMsg2Eigen(Mavs, mavNum);
+		mav_eigen = mavMsg2Eigen(mav);
 
-		//////////////////////////////////// Self_acc_EIF ////////////////////////////////////
-		std::cout << "SEIF:\n";
-		Seif.setData(Mavs_eigen[MAV::self_index]);
-		Seif.computePredPairs(dt);
-		Seif.computeCorrPairs();
-		selfState_HEIF.setData(dp.get_curr_fusing_data(dp.getRbs2SelfEIFmsg(), 0.03), Seif.getSelfData());
-		selfState_HEIF.process();
-		Seif.setFusionPairs(selfState_HEIF.getFusedCov(), selfState_HEIF.getFusedState());
-		dp.selfState_RMSE_pub.publish(compare(Mavs_eigen[MAV::self_index], selfState_HEIF.getFusedState()));
-		////////////////////////////////// Other Robots EIF //////////////////////////////////
-		if(consensus)
-			Reif.setData(Mavs_eigen, selfState_HEIF.getFusedState());
-		else
-			Reif.setData(Mavs_eigen);
-		Reif.computePredPairs(dt);
-		Reif.computeCorrPairs();
-		for(int i=0; i<mavNum; i++)
-			if(i != MAV::self_index)
-				dp.self2RbsEIFpairs_pub[i].publish(eigen2EifMsg(Reif.getRbsData()[i], ID));
+		//////////////////////////////////////////////////// Prediction ////////////////////////////////////////////////////
+		SEIF_pose.setData(mav_eigen.a, mav_eigen.r);
+		SEIF_pose.computePredPairs(dt);
+		dp.selfPredEIFpairs_pub.publish(eigen2EifMsg(SEIF_pose.getEIFData(), ID));
+		
+		SEIF_neighbors.setPrediction(SEIF_pose.getEIFData());
+		SEIF_neighbors.setData(dp.lidarMeasurements
+							, dp.get_curr_fusing_data(dp.neighborsEIFpairs, 0.05)
+							, mav_eigen);
 
-		//////////////////////////////////// Target_EIF /////////////////////////////////////
 		if(dp.gotBbox)
 		{
-			std::cout << "TEIF:\n";
-			std::vector<EIF_data> allTgtEIFData;
 			if(consensus)
-				state2MavEigen(selfState_HEIF.getFusedState(), Mavs_eigen[MAV::self_index]);
-			Teif.setData(Mavs_eigen[MAV::self_index], dp.bboxMsg2Eigen());
-			Teif.computePredPairs(dt, Reif.getRbsData());
-			Teif.computeCorrPairs();
-			dp.self2TgtEIFpairs_pub.publish(eigen2EifMsg(Teif.getTgtData(), ID));
-			allTgtEIFData = dp.get_curr_fusing_data(dp.getRbs2TgtEIFmsg(), targetTimeTol);
-			allTgtEIFData.push_back(Teif.getTgtData());
-			targetState_HEIF.setData(allTgtEIFData);
-			targetState_HEIF.process();
-			Teif.setFusionPairs(targetState_HEIF.getFusedCov(), targetState_HEIF.getFusedState());
-			dp.tgtState_RMSE_pub.publish(compare(dp.targetState_GT, targetState_HEIF.getFusedState()));
+				state2MavEigen(SEIF_pose.getEIFData().X_hat, mav_eigen);
+		 	teif.setData(mav_eigen
+						, dp.bboxMsg2Eigen()
+						, SEIF_pose.getEIFData());
+		 	teif.computePredPairs(dt);
 		}
 
+		// //////////////////////////////////////////////////// Correction ////////////////////////////////////////////////////
+		SEIF_pose.computeCorrPairs();
+		SEIF_neighbors.computeCorrPairs();
+		if(dp.gotBbox)
+		{
+		 	teif.computeCorrPairs();
+			dp.self2TgtEIFpairs_pub.publish(eigen2EifMsg(teif.getTgtData(), ID));
+		}
+		// //////////////////////////////////////////////////// Fusion ////////////////////////////////////////////////////
+		sheif.setSelfEstData(SEIF_pose.getEIFData());
+		sheif.setNeighborEstData(SEIF_neighbors.getEIFData());
+		sheif.process();
+		SEIF_pose.setFusionPairs(sheif.getFusedCov(), sheif.getFusedState());
+		cout << "SEIF:\n";
+		compare(dp.GT_eigen[ID], sheif.getFusedState());
+		if(dp.gotBbox)
+		{
+			std::vector<EIF_data> allTgtEIFData;
+			allTgtEIFData = dp.get_curr_fusing_data(dp.rbs2Tgt_EIFPairs, 0.03);
+			allTgtEIFData.push_back(teif.getTgtData());
+			theif.setTargetEstData(allTgtEIFData);
+			theif.process();
+			teif.setFusionPairs(theif.getFusedCov(), theif.getFusedState());
+			cout << "TEIF:\n";
+			compare(dp.GT_eigen[0], theif.getFusedState());
+		}
 		/////////////////////////////////////////////////////////////////////////////////////
     	dt = ros::Time::now().toSec() - last_t;
     	last_t = ros::Time::now().toSec();

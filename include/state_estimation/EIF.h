@@ -3,6 +3,7 @@
 #pragma once
 #include "Mav.h"
 
+
 struct EIF_data
 {
     Eigen::VectorXf X; //state
@@ -22,14 +23,13 @@ struct EIF_data
     Eigen::MatrixXf Omega;
     Eigen::MatrixXf Omega_hat;
     
+    int ID;
 };
-
 
 class EIF
 {
 protected:
 
-    int self_pointer;
     int mavNum;
 
     Eigen::MatrixXf Q; //noise matrix
@@ -41,20 +41,19 @@ protected:
     Eigen::VectorXf fusedXi;
     
 public:
-	EIF(int selfPointer, int MavNum);
+	EIF();
 	~EIF();
 
     Eigen::Matrix3f skew(Eigen::Vector3f vec);
 
     void EIF_data_init(int x_size, int z_size, EIF_data* est_object);
-
-    virtual void setData();
-	virtual void computePredPairs();
-	virtual void computeCorrPairs();
+    void EIF_prediction_init(int x_size, EIF_data* est_object);
+    void EIF_measurement_init(int x_size, int z_size, EIF_data* est_object);
 	void set_process_noise(Eigen::MatrixXf matrix);
     void set_measurement_noise(Eigen::MatrixXf matrix);
-    
-    Eigen::MatrixXf getTargetState();
 };
+
+
+
 
 #endif

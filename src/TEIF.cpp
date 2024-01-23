@@ -1,35 +1,35 @@
 #include "TEIF.h"
 
-target_EIF::target_EIF(int state_size, int selfPointer, int MavNum) : EIF(selfPointer, MavNum)
+target_EIF::target_EIF(int state_size)
 {
 	target_state_size = state_size;
 	target_measurement_size = 3;
 	EIF_data_init(target_state_size, target_measurement_size, &T);
+	Q.block(0, 0, 3, 3) = 7e-4*Eigen::MatrixXf::Identity(3, 3);
+	Q.block(3, 3, 3, 3) = 7e-2*Eigen::MatrixXf::Identity(3, 3);
+	R = 1e-5*Eigen::MatrixXf::Identity(3, 3);
 
 	fx = 565.6008952774197;
 	fy = 565.6008952774197;
 	cx = 320.5;
 	cy = 240.5;
 
-	Intrinsic.setZero(3, 3);
-	Intrinsic << fx, 0.0, cx,
-				 0.0, fy, cy,
-				 0.0, 0.0, 1.0;
-
-	Mav_curr.v.setZero();		 
+	Mav_curr.v.setZero();
 }
 target_EIF::~target_EIF(){}
 
-void target_EIF::setData(MAV_eigen MAV, Eigen::Vector3f bBox)
+void target_EIF::setData(MAV_eigen MAV, 
+						Eigen::Vector3f bBox, 
+						EIF_data self_data)
 {
 	Mav_curr = MAV;
 	Mav_curr.r_c = Mav_curr.r + Mav_curr.R_w2b.inverse()*t_b2c;
 	boundingBox = bBox;
+	self = self_data;
 }
 
-EIF_data target_EIF::getTgtData(){return T;}
 
-void target_EIF::computePredPairs(double delta_t, EIF_data* Rbs)
+void target_EIF::computePredPairs(double delta_t)
 {
 	float dt = static_cast<float>(delta_t);
 	
@@ -38,12 +38,6 @@ void target_EIF::computePredPairs(double delta_t, EIF_data* Rbs)
 	T.F.setIdentity();
 	T.F.block(0, 3, 3, 3) = Eigen::Matrix3f::Identity(3, 3)*dt;
 
-	if(target_state_size == 9)
-	{
-		T.F.block(0, 6, 3, 3) = 1/2*Eigen::Matrix3f::Identity(3, 3)*dt*dt;
-		T.F.block(3, 6, 3, 3) = Eigen::Matrix3f::Identity(3, 3)*dt;
-	}
-
 	T.P_hat = T.F*T.P*T.F.transpose() + Q;
 	T.X_hat = T.F*T.X;
 }
@@ -51,13 +45,11 @@ void target_EIF::computeCorrPairs()
 {
 	T.z = boundingBox;
 
-	if(T.z == T.pre_z)
+	T.s.setZero();
+	T.y.setZero();
+	if(T.z != T.pre_z)
 	{
-		T.s.setZero();
-		T.y.setZero();
-	}
-	else
-	{
+		Eigen::MatrixXf R_hat;
 		Eigen::Matrix3f R_w2c = R_b2c*Mav_curr.R_w2b;
 		Eigen::Vector3f r_qc_c = R_w2c*(T.X_hat.segment(0, 3) - Mav_curr.r_c);
 
@@ -65,7 +57,6 @@ void target_EIF::computeCorrPairs()
 		Y = r_qc_c(1)/r_qc_c(2);
 		Z = r_qc_c(2);
 
-		Intrinsic(2, 2) = Z;
 		T.h(0) = fx*X + cx;
 		T.h(1) = fy*Y + cy;
 		T.h(2) = Z;
@@ -80,12 +71,16 @@ void target_EIF::computeCorrPairs()
 		T.H(2, 1) = R_w2c(2, 1);
 		T.H(2, 2) = R_w2c(2, 2);
 
-		T.s = T.H.transpose()*R.inverse()*T.H;
-		T.y = T.H.transpose()*R.inverse()*(T.z - T.h + T.H*T.X_hat);
+		self.H = -T.H;
+
+		R_hat = R + self.H*self.P_hat*self.H.transpose();
+
+		T.s = T.H.transpose()*R_hat.inverse()*T.H;
+		T.y = T.H.transpose()*R_hat.inverse()*(T.z - T.h + T.H*T.X_hat);
 	}
 	T.P = (T.P_hat.inverse() + T.s).inverse();
 	T.X = T.P*(T.P_hat.inverse()*T.X_hat + T.y);
-	T.pre_z = T.z; 
+	T.pre_z = T.z;
 }
 
 void target_EIF::setFusionPairs(Eigen::MatrixXf fusedP, Eigen::VectorXf fusedX)
@@ -93,3 +88,5 @@ void target_EIF::setFusionPairs(Eigen::MatrixXf fusedP, Eigen::VectorXf fusedX)
     T.P = fusedP;
     T.X = fusedX;
 }
+
+EIF_data target_EIF::getTgtData(){return T;}

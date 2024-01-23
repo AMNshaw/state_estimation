@@ -151,9 +151,12 @@ target_include_directories(Mav PRIVATE
 add_library(EIF
    src/EIF.cpp
    src/TEIF.cpp
-   src/REIF.cpp
    src/SEIF.cpp
+   src/SEIF_pose.cpp
+   src/SEIF_neighbors.cpp
    src/HEIF.cpp
+   src/HEIF_self.cpp
+   src/HEIF_target.cpp
 )
 
 target_link_libraries(EIF

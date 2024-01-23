@@ -16,17 +16,17 @@ private:
     float Z;
 
     EIF_data T;
-    Eigen::MatrixXf Intrinsic;
+    EIF_data self;
     Eigen::Vector3f boundingBox;
 
     MAV_eigen Mav_curr;
 
 public:
-    target_EIF(int state_size, int selfPointer, int MavNum);
+    target_EIF(int state_size);
     ~target_EIF();
-    void computePredPairs(double delta_t, EIF_data* Rbs);
+    void computePredPairs(double delta_t);
     void computeCorrPairs();
-    void setData(MAV_eigen MAV, Eigen::Vector3f bBox);
+    void setData(MAV_eigen MAV, Eigen::Vector3f bBox, EIF_data self);
     void setFusionPairs(Eigen::MatrixXf fusedP, Eigen::VectorXf fusedX);
 
     EIF_data getTgtData();
