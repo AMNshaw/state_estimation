@@ -7,7 +7,7 @@ Self_EIF::Self_EIF()
 	
 	EIF_prediction_init(self_state_size, &self);
 	Q.block(0, 0, 3, 3) = 1e-4*Eigen::MatrixXf::Identity(3, 3); // position
-    Q.block(3, 3, 3, 3) = 12e-2*Eigen::MatrixXf::Identity(3, 3); // velocity
+    Q.block(3, 3, 3, 3) = 12e-3*Eigen::MatrixXf::Identity(3, 3); // velocity
 }
 Self_EIF::~Self_EIF(){}
 
