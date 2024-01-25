@@ -13,6 +13,7 @@
 #include <std_msgs/Header.h>
 #include <state_estimation/EIFpairStamped.h>
 #include <state_estimation/RMSE.h>
+#include <state_estimation/Plot.h>
 #include <geometry_msgs/Quaternion.h>
 #include <geometry_msgs/Vector3.h>
 #include <gazebo_msgs/ModelStates.h>
@@ -39,8 +40,8 @@ private:
 	std::string self2TgtEIFpairs_pub_topic;
 	std::string* rbs2TgtEIFpairs_sub_topic;
 	std::string selfPredEIFpairs_pub_topic;
-	std::string tgtStateRMSE_topic;
-	std::string selfStateRMSE_topic;
+	std::string tgtStatePlot_topic;
+	std::string selfStatePlot_topic;
 
 	int state_size;
 	int mavNum;
@@ -52,8 +53,8 @@ public:
 	Data_process(ros::NodeHandle &nh, string vehicle, int ID, int mavnum);
 	~Data_process();
 
-	ros::Publisher tgtState_RMSE_pub;
-	ros::Publisher selfState_RMSE_pub;
+	ros::Publisher tgtState_Plot_pub;
+	ros::Publisher selfState_Plot_pub;
 	ros::Publisher self2TgtEIFpairs_pub;
 	ros::Publisher selfPredEIFpairs_pub;
 
@@ -110,8 +111,8 @@ Data_process::Data_process(ros::NodeHandle &nh, string vehicle, int ID, int mavn
 
 	/////////////////////////////////////////////////Publisher /////////////////////////////////////////////////
 
-	tgtState_RMSE_pub = nh.advertise<state_estimation::RMSE>(tgtStateRMSE_topic, 1);
-	selfState_RMSE_pub = nh.advertise<state_estimation::RMSE>(selfStateRMSE_topic, 1);
+	tgtState_Plot_pub = nh.advertise<state_estimation::Plot>(tgtStatePlot_topic, 1);
+	selfState_Plot_pub = nh.advertise<state_estimation::Plot>(selfStatePlot_topic, 1);
 	self2TgtEIFpairs_pub = nh.advertise<state_estimation::EIFpairStamped>(self2TgtEIFpairs_pub_topic, 1);
 	selfPredEIFpairs_pub = nh.advertise<state_estimation::EIFpairStamped>(selfPredEIFpairs_pub_topic, 1);
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -134,8 +135,8 @@ void Data_process::set_topic(std::string vehicle, int id)
 	string prefix = std::string("/") + vehicle + std::string("_") + std::to_string(id);
 	bbox_topic = prefix + std::string("/synchronizer/yolov7/boundingBox");
 	self2TgtEIFpairs_pub_topic = prefix + std::string("/TEIF/fusionPairs");
-	tgtStateRMSE_topic = prefix + std::string("/TEIF/RMSE");
-	selfStateRMSE_topic = prefix + std::string("/SHEIF/RMSE");
+	tgtStatePlot_topic = prefix + std::string("/THEIF/Plot");
+	selfStatePlot_topic = prefix + std::string("/SHEIF/Plot");
 	selfPredEIFpairs_pub_topic = prefix + std::string("/SEIF_pred/fusionPairs");
 
 	neighborsEIFpairs_sub_topic = new std::string[mavNum];
@@ -219,13 +220,13 @@ std::vector<Eigen::Vector4f> Data_process::lidarMeasure(std::vector<MAV_eigen> m
 	{
 		if(i != self_index)
 		{
-			// measurement(0) = sqrt(pow(mav_eigen[i].r(0)-mav_eigen[self_index].r(0), 2)  // r
-			// + pow(mav_eigen[i].r(1)-mav_eigen[self_index].r(1), 2) 
-			// + pow(mav_eigen[i].r(2)-mav_eigen[self_index].r(2), 2)); 
-			// measurement(1) = std::acos((mav_eigen[i].r(2)-mav_eigen[self_index].r(2))/measurement(0)) - (mav_eigen[self_index].RPY(1) + M_PI_2); // theta
-			// measurement(2) = std::atan2(mav_eigen[i].r(1)-mav_eigen[self_index].r(1), mav_eigen[i].r(0)-mav_eigen[self_index].r(0)) - mav_eigen[self_index].RPY(2); // phi
+			measurement(0) = sqrt(pow(mav_eigen[i].r(0)-mav_eigen[self_index].r(0), 2)  // r
+			+ pow(mav_eigen[i].r(1)-mav_eigen[self_index].r(1), 2) 
+			+ pow(mav_eigen[i].r(2)-mav_eigen[self_index].r(2), 2)); 
+			measurement(1) = std::acos((mav_eigen[i].r(2)-mav_eigen[self_index].r(2))/measurement(0)); // theta
+			measurement(2) = std::atan2(mav_eigen[i].r(1)-mav_eigen[self_index].r(1), mav_eigen[i].r(0)-mav_eigen[self_index].r(0)); // phi
 			
-			measurement.segment(0, 3) = mav_eigen[i].r - mav_eigen[self_index].r;
+			//measurement.segment(0, 3) = mav_eigen[i].r - mav_eigen[self_index].r;
 
 			measurement(3) = i+1; // ID
 			measurements.push_back(measurement);
@@ -349,7 +350,7 @@ int main(int argc, char **argv)
 		sheif.process();
 		SEIF_pose.setFusionPairs(sheif.getFusedCov(), sheif.getFusedState());
 		cout << "SEIF:\n";
-		compare(dp.GT_eigen[ID], sheif.getFusedState());
+		dp.selfState_Plot_pub.publish(compare(dp.GT_eigen[ID], sheif.getFusedState()));
 		if(dp.gotBbox)
 		{
 			std::vector<EIF_data> allTgtEIFData;
@@ -359,7 +360,7 @@ int main(int argc, char **argv)
 			theif.process();
 			teif.setFusionPairs(theif.getFusedCov(), theif.getFusedState());
 			cout << "TEIF:\n";
-			compare(dp.GT_eigen[0], theif.getFusedState());
+			dp.tgtState_Plot_pub.publish(compare(dp.GT_eigen[0], theif.getFusedState()));
 		}
 		/////////////////////////////////////////////////////////////////////////////////////
     	dt = ros::Time::now().toSec() - last_t;

@@ -30,4 +30,5 @@ public:
     void setFusionPairs(Eigen::MatrixXf fusedP, Eigen::VectorXf fusedX);
 
     EIF_data getTgtData();
+    EIF_data getSelfData();
 };

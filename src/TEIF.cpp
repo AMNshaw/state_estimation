@@ -47,9 +47,11 @@ void target_EIF::computeCorrPairs()
 
 	T.s.setZero();
 	T.y.setZero();
+	self.s.setZero();
+	self.y.setZero();
 	if(T.z != T.pre_z)
 	{
-		Eigen::MatrixXf R_hat;
+		Eigen::MatrixXf R_hat, R_bar;
 		Eigen::Matrix3f R_w2c = R_b2c*Mav_curr.R_w2b;
 		Eigen::Vector3f r_qc_c = R_w2c*(T.X_hat.segment(0, 3) - Mav_curr.r_c);
 
@@ -60,6 +62,8 @@ void target_EIF::computeCorrPairs()
 		T.h(0) = fx*X + cx;
 		T.h(1) = fy*Y + cy;
 		T.h(2) = Z;
+		self.z = T.z;
+		self.h = T.h;
 
 		T.H(0, 0) = (fx/Z)*(R_w2c(0, 0) - R_w2c(2, 0)*X);
 		T.H(0, 1) = (fx/Z)*(R_w2c(0, 1) - R_w2c(2, 1)*X);
@@ -74,9 +78,13 @@ void target_EIF::computeCorrPairs()
 		self.H = -T.H;
 
 		R_hat = R + self.H*self.P_hat*self.H.transpose();
+		R_bar = R + T.H*T.P_hat*T.H.transpose();
 
 		T.s = T.H.transpose()*R_hat.inverse()*T.H;
 		T.y = T.H.transpose()*R_hat.inverse()*(T.z - T.h + T.H*T.X_hat);
+
+		self.s = self.H.transpose()*R_bar.inverse()*self.H;
+		self.y = self.H.transpose()*R_bar.inverse()*(self.z - self.h + self.H*self.X_hat);
 	}
 	T.P = (T.P_hat.inverse() + T.s).inverse();
 	T.X = T.P*(T.P_hat.inverse()*T.X_hat + T.y);
@@ -90,3 +98,4 @@ void target_EIF::setFusionPairs(Eigen::MatrixXf fusedP, Eigen::VectorXf fusedX)
 }
 
 EIF_data target_EIF::getTgtData(){return T;}
+EIF_data target_EIF::getSelfData(){return self;}

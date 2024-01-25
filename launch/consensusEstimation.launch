@@ -27,8 +27,9 @@
                 <param name="rate" value="$(arg rate)"/>
                 <param name="consensus" value="$(arg consensus)"/>
                 <param name="targetTimeTol" value="$(arg targetTimeTol)"/>
-                <param name="pose_hz" value="0"/>
+                <param name="pose_hz" value="10"/>
 
++
                 <node name="synchronizer" pkg="state_estimation" type="self_msg_sync" ></node>
                 <node name="state_estimation" pkg="state_estimation" type="state_estimation"></node>
         </group>
@@ -39,7 +40,7 @@
                 <param name="rate" value="$(arg rate)"/>
                 <param name="consensus" value="$(arg consensus)"/>
                 <param name="targetTimeTol" value="$(arg targetTimeTol)"/>
-                <param name="pose_hz" value="5"/>
+                <param name="pose_hz" value="0"/>
 
                 <node name="synchronizer" pkg="state_estimation" type="self_msg_sync" ></node>
                 <node name="state_estimation" pkg="state_estimation" type="state_estimation"></node>

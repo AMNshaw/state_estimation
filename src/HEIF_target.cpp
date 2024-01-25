@@ -28,7 +28,6 @@ void HEIF_target::TargetEstDataCI()
 		weightedOmega_hat += weight[i]*est_data[i].P_hat.inverse();
 		weightedXi_hat += weight[i]*(est_data[i].P_hat.inverse()*est_data[i].X_hat);
 	}
-
 	//////////////////////////// s, y ////////////////////////////
 	for(int i=0; i<fusionNum; i++)
 		trace_sum += est_data[i].s.trace();

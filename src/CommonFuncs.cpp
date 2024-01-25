@@ -102,18 +102,33 @@ std::vector<MAV_eigen> mavsMsg2Eigen(std::vector<MAV> Mavs)
     return Mavs_eigen;
 }
 
-state_estimation::RMSE compare(MAV_eigen GT, Eigen::VectorXf est)
+state_estimation::Plot compare(MAV_eigen GT, Eigen::VectorXf est)
 {
 	Eigen::Vector3f E_p = GT.r - est.segment(0, 3);
 	Eigen::Vector3f E_v = GT.v - est.segment(3, 3);
-	state_estimation::RMSE RMSE_data;
+	state_estimation::Plot Plot_data;
 	
 	std::cout << "State: \n" << est << "\n\n";
 	std::cout << "RMS_p: " << E_p.norm() << "\nRMS_v: " << E_v.norm() << "\n\n";
-	RMSE_data.header.stamp = ros::Time::now();
-	RMSE_data.RMSE_p = E_p.norm();
-	RMSE_data.RMSE_v = E_v.norm();
-	return RMSE_data;
+	Plot_data.header.stamp = ros::Time::now();
+
+	Plot_data.GT_pose.position.x = GT.r(0);
+	Plot_data.GT_pose.position.y = GT.r(1);
+	Plot_data.GT_pose.position.z = GT.r(2);
+	Plot_data.GT_twist.linear.x = GT.v(0);
+	Plot_data.GT_twist.linear.y = GT.v(1);
+	Plot_data.GT_twist.linear.z = GT.v(2);
+
+	Plot_data.est_pose.position.x = est(0);
+	Plot_data.est_pose.position.y = est(1);
+	Plot_data.est_pose.position.z = est(2);
+	Plot_data.est_twist.linear.x = est(3);
+	Plot_data.est_twist.linear.y = est(4);
+	Plot_data.est_twist.linear.z = est(5);
+
+	Plot_data.RMSE_p = E_p.norm();
+	Plot_data.RMSE_v = E_v.norm();
+	return Plot_data;
 }
 
 state_estimation::RMSE compare(MAV_eigen GT, MAV_eigen est)

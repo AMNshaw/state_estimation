@@ -5,14 +5,41 @@ def extract_data(bag, topics):
     timestamps = []
     RMSE_p = []
     RMSE_v = []
+    GT_poses = []
+    est_poses = []
 
     for topic, msg, t in bag.read_messages(topics):
     # Extract relevant data from the message
         timestamps.append(msg.header.stamp.to_sec())
         RMSE_p.append(msg.RMSE_p)
         RMSE_v.append(msg.RMSE_v)
+        GT_poses.append(msg.GT_pose)
+        est_poses.append(msg.est_pose)
 
-    return timestamps, RMSE_p, RMSE_v
+    return timestamps, GT_poses, est_poses, RMSE_p, RMSE_v
+
+def plot_position_3D(GT_poses, est_poses):
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+
+    GT_x = [pose.position.x for pose in GT_poses]
+    GT_y = [pose.position.y for pose in GT_poses]
+    GT_z = [pose.position.z for pose in GT_poses]
+    
+    est_x = [pose.position.x for pose in est_poses]
+    est_y = [pose.position.y for pose in est_poses]
+    est_z = [pose.position.z for pose in est_poses]
+
+    ax.plot(GT_x, GT_y, GT_z, label='GT Pose')
+    ax.plot(est_x, est_y, est_z, label='Est Pose')
+
+    ax.set_xlabel('X-axis')
+    ax.set_ylabel('Y-axis')
+    ax.set_zlabel('Z-axis')
+    ax.legend()
+    
+    plt.title('3D Poses')
+    plt.show()
 
 def plot_data_p(timeStamps, RMSE_p, title):
     average_RMSE_p = sum(RMSE_p)/len(RMSE_p)
@@ -42,13 +69,18 @@ def plot_data_v(timeStamps, RMSE_v, title):
 
 def plotFromBag(bag, name):
     
-    timestamps, EIF_1_RMSE_p, EIF_1_RMSE_v = extract_data(bag, '/iris_1/SHEIF/RMSE')
+    timestamps, EIF_1_GTpose, EIF_1_Estpose, EIF_1_RMSE_p, EIF_1_RMSE_v = extract_data(bag, '/iris_1/SHEIF/Plot')
+    # timestamps, EIF_2_GTpose, EIF_2_Estpose, EIF_2_RMSE_p, EIF_2_RMSE_v = extract_data(bag, '/iris_2/SHEIF/Plot')
+    # timestamps, EIF_3_GTpose, EIF_3_Estpose, EIF_3_RMSE_p, EIF_3_RMSE_v = extract_data(bag, '/iris_3/SHEIF/Plot')
     bag.close()
+    
+    plot_position_3D(EIF_1_GTpose, EIF_1_Estpose)
     plot_data_p(timestamps, EIF_1_RMSE_p, name)
     plot_data_v(timestamps, EIF_1_RMSE_v, name)
 
 folder = '/home/ncrl/gazebo_sim_ws/src/state_estimation/bag/'
 
-file = folder + 'SHEIF_3hz.bag'
+file = folder + '1hz_2.bag'
+print(file)
 bag = rosbag.Bag(file)
-plotFromBag(bag, 'SHEIF pose rate 3hz')
+plotFromBag(bag, 'SHEIF pose rate 1hz')

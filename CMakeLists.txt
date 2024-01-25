@@ -11,16 +11,14 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
+  geometry_msgs
   message_filters
   message_generation
   cv_bridge
-  pcl_ros
-  pcl_conversions
 )
 
 find_package(Eigen3 REQUIRED)
 find_package(OpenCV REQUIRED)
-find_package(PCL REQUIRED)
 find_package(dlib REQUIRED)
 
 
@@ -63,6 +61,7 @@ find_package(dlib REQUIRED)
    Int32MultiArrayStamped.msg  
    EIFpairStamped.msg
    RMSE.msg
+   Plot.msg
  )
 
 ## Generate services in the 'srv' folder
@@ -83,6 +82,7 @@ find_package(dlib REQUIRED)
  generate_messages(
    DEPENDENCIES
    std_msgs
+   geometry_msgs
  )
 
 ################################################
@@ -119,7 +119,7 @@ catkin_package(
 #  LIBRARIES state_estimation
 #  CATKIN_DEPENDS roscpp rospy std_msgs
 #  DEPENDS system_lib
-CATKIN_DEPENDS message_runtime cv_bridge roscpp rospy std_msgs pcl_conversions
+CATKIN_DEPENDS message_runtime cv_bridge roscpp rospy std_msgs geometry_msgs pcl_conversions
 )
 
 ###########
@@ -133,7 +133,6 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
   ${EIGEN3_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS}
-  ${PCL_INCLUDE_DIRS}
   ${dlib_INCLUDE_DIRS}
 )
 
@@ -191,7 +190,6 @@ add_executable(self_msg_sync
   )
 target_link_libraries(self_msg_sync
   ${catkin_LIBRARIES} 
-  ${PCL_LIBRARIES}
   )
 target_include_directories(self_msg_sync PRIVATE
   include/${PROJECT_NAME}/ ) 
