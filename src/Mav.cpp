@@ -54,11 +54,12 @@ void MAV::imu_cb(const sensor_msgs::Imu::ConstPtr& msg)
     if(!imu_init)
         imu_init = true;
     imu_current = *msg;
+    pose_current.pose.orientation = imu_current.orientation;
     tf::Quaternion Q(
-        pose_current.pose.orientation.x,
-        pose_current.pose.orientation.y,
-        pose_current.pose.orientation.z,
-        pose_current.pose.orientation.w);
+        imu_current.orientation.x,
+        imu_current.orientation.y,
+        imu_current.orientation.z,
+        imu_current.orientation.w);
     tf::Matrix3x3(Q).getRPY(roll,pitch,yaw);
     tf::Vector3 acc(imu_current.linear_acceleration.x, imu_current.linear_acceleration.y, imu_current.linear_acceleration.z);
     acc_current.x = tf::quatRotate(Q, acc).getX();
@@ -66,6 +67,7 @@ void MAV::imu_cb(const sensor_msgs::Imu::ConstPtr& msg)
     acc_current.z = tf::quatRotate(Q, acc).getZ() - 9.81;
 }
 
+sensor_msgs::Imu MAV::getImu(){return imu_current;}
 geometry_msgs::PoseStamped MAV::getPose(){return pose_current;}
 geometry_msgs::TwistStamped MAV::getVel(){return vel_current;}
 geometry_msgs::Vector3 MAV::getAcc(){return acc_current;}

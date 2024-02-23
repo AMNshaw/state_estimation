@@ -45,6 +45,7 @@ public:
     void imu_cb(const sensor_msgs::Imu::ConstPtr& msg);
     void mav_state_cb(const mavros_msgs::State::ConstPtr& msg);
     
+    sensor_msgs::Imu getImu();
     geometry_msgs::PoseStamped getPose();
     geometry_msgs::TwistStamped getVel();
     geometry_msgs::Vector3 getAcc();

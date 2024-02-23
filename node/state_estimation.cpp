@@ -87,7 +87,7 @@ Data_process::Data_process(ros::NodeHandle &nh, string vehicle, int ID, int mavn
 	self_index = ID-1;
 	mavNum = mavnum;
 	set_topic(vehicle, self_id);
-	lidar_hz = 5;
+	lidar_hz = 10;
 	lidar_count = 0;
 
 	gotBbox  = false;
@@ -165,7 +165,6 @@ std::vector<EIF_data> Data_process::get_curr_fusing_data(state_estimation::EIFpa
 	{
 		if(abs(EIFPairs[i].header.stamp.toSec() - ros::Time::now().toSec()) <= tolerance)
 			est_data.push_back(eifMsg2Eigen(EIFPairs[i]));
-
 	}
 	return est_data;
 }
@@ -216,15 +215,16 @@ std::vector<Eigen::Vector4f> Data_process::lidarMeasure(std::vector<MAV_eigen> m
 {
 	Eigen::Vector4f measurement;
 	std::vector<Eigen::Vector4f> measurements;
+	Eigen::Vector3f r_ns_B;
+	Eigen::Matrix3f R_W2B_i = mav_eigen[self_index].R_w2b.inverse();
 	for(int i=0; i<mavNum; i++)
 	{
 		if(i != self_index)
 		{
-			measurement(0) = sqrt(pow(mav_eigen[i].r(0)-mav_eigen[self_index].r(0), 2)  // r
-			+ pow(mav_eigen[i].r(1)-mav_eigen[self_index].r(1), 2) 
-			+ pow(mav_eigen[i].r(2)-mav_eigen[self_index].r(2), 2)); 
-			measurement(1) = std::acos((mav_eigen[i].r(2)-mav_eigen[self_index].r(2))/measurement(0)); // theta
-			measurement(2) = std::atan2(mav_eigen[i].r(1)-mav_eigen[self_index].r(1), mav_eigen[i].r(0)-mav_eigen[self_index].r(0)); // phi
+			r_ns_B = R_W2B_i*(mav_eigen[i].r - mav_eigen[self_index].r);
+			measurement(0) = sqrt(pow(r_ns_B(0), 2) + pow(r_ns_B(1), 2) + pow(r_ns_B(2), 2));
+			measurement(1) = acos(r_ns_B(2)/measurement(0)); // theta
+			measurement(2) = atan2(r_ns_B(1), r_ns_B(0)); // phi
 			
 			//measurement.segment(0, 3) = mav_eigen[i].r - mav_eigen[self_index].r;
 
@@ -315,14 +315,13 @@ int main(int argc, char **argv)
     while(ros::ok())
     {
 		mav_eigen = mavMsg2Eigen(mav);
-
 		//////////////////////////////////////////////////// Prediction ////////////////////////////////////////////////////
 		SEIF_pose.setData(mav_eigen.a, mav_eigen.r);
 		SEIF_pose.computePredPairs(dt);
 		dp.selfPredEIFpairs_pub.publish(eigen2EifMsg(SEIF_pose.getEIFData(), ID));
 		
-		SEIF_neighbors.setPrediction(SEIF_pose.getEIFData());
-		SEIF_neighbors.setData(dp.lidarMeasurements
+		SEIF_neighbors.setEIFpredData(SEIF_pose.getEIFData());
+		SEIF_neighbors.setNeighborData(dp.lidarMeasurements
 							, dp.get_curr_fusing_data(dp.neighborsEIFpairs, 0.05)
 							, mav_eigen);
 

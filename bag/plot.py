@@ -67,20 +67,43 @@ def plot_data_v(timeStamps, RMSE_v, title):
     plt.annotate(f'Average RMSE: {average_RMSE_v:.3f}', xy=(timeStamps[0], max(RMSE_v)), color='red')
     plt.show()
 
+def plot_position_error(timeStamps, E_p, axis):
+    average_error = sum(E_p)/len(E_p)
+
+    plt.figure(figsize=(10, 6))
+    plt.plot(timeStamps, E_p, label='Error')
+    plt.xlabel('Time (seconds)')
+    plt.ylabel('Error_'+ axis)
+    plt.title(axis+'_error ')
+    plt.legend()
+    plt.grid(True)
+    plt.annotate(f'Average Error: {average_error:.3f}', xy=(timeStamps[0], max(E_p)), color='red')
+    plt.show()
+
 def plotFromBag(bag, name):
-    
+    E_x = []
+    E_y = []
+    E_z = []
     timestamps, EIF_1_GTpose, EIF_1_Estpose, EIF_1_RMSE_p, EIF_1_RMSE_v = extract_data(bag, '/iris_1/SHEIF/Plot')
     # timestamps, EIF_2_GTpose, EIF_2_Estpose, EIF_2_RMSE_p, EIF_2_RMSE_v = extract_data(bag, '/iris_2/SHEIF/Plot')
     # timestamps, EIF_3_GTpose, EIF_3_Estpose, EIF_3_RMSE_p, EIF_3_RMSE_v = extract_data(bag, '/iris_3/SHEIF/Plot')
+    for (GTpose, Estpose) in zip(EIF_1_GTpose, EIF_1_Estpose):
+        E_x.append(abs(GTpose.position.x - Estpose.position.x))
+        E_y.append(abs(GTpose.position.y - Estpose.position.y))
+        E_z.append(abs(GTpose.position.z - Estpose.position.z))
+
     bag.close()
     
     plot_position_3D(EIF_1_GTpose, EIF_1_Estpose)
+    plot_position_error(timestamps, E_x, 'x')
+    plot_position_error(timestamps, E_y, 'y')
+    plot_position_error(timestamps, E_z, 'z')
     plot_data_p(timestamps, EIF_1_RMSE_p, name)
     plot_data_v(timestamps, EIF_1_RMSE_v, name)
 
 folder = '/home/ncrl/gazebo_sim_ws/src/state_estimation/bag/'
 
-file = folder + '1hz_2.bag'
+file = folder + 'all_3hz.bag'
 print(file)
 bag = rosbag.Bag(file)
-plotFromBag(bag, 'SHEIF pose rate 1hz')
+plotFromBag(bag, 'SHEIF, all robots has absolute position rate 3hz')

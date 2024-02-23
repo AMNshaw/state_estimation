@@ -27,7 +27,7 @@
                 <param name="rate" value="$(arg rate)"/>
                 <param name="consensus" value="$(arg consensus)"/>
                 <param name="targetTimeTol" value="$(arg targetTimeTol)"/>
-                <param name="pose_hz" value="3"/>
+                <param name="pose_hz" value="5"/>
 
 +
                 <node name="synchronizer" pkg="state_estimation" type="self_msg_sync" ></node>

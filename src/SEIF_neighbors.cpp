@@ -19,7 +19,7 @@ Self_rel_EIF::Self_rel_EIF()
 }
 Self_rel_EIF::~Self_rel_EIF(){}
 
-void Self_rel_EIF::setData(std::vector<Eigen::Vector4f> LMs
+void Self_rel_EIF::setNeighborData(std::vector<Eigen::Vector4f> LMs
                         , std::vector<EIF_data> robots
                         , MAV_eigen mav_self)
 { 
@@ -31,44 +31,10 @@ void Self_rel_EIF::setData(std::vector<Eigen::Vector4f> LMs
     
 }
 
-void Self_rel_EIF::setPrediction(EIF_data pred)
+void Self_rel_EIF::setEIFpredData(EIF_data pred)
 {
     self = pred;
 }
-
-// EIF_data Self_rel_EIF::computeCorrPair(Eigen::Vector4f LM, EIF_data& neighbor_pred)
-// {
-//     self.z = LM.segment(0, 3);
-
-//     self.s.setZero();
-//     self.y.setZero();
-
-//     if(self.z != self.pre_z)
-//     {
-//         Eigen::MatrixXf R_hat;
-//         Eigen::Vector3f E_ns = neighbor_pred.X_hat.segment(0, 3) - self.X_hat.segment(0, 3);
-                
-//         self.h = E_ns;
-        
-//         ////////////////////////////////////////////////// derivative w.r.t neighbor //////////////////////////////////////////////////
-        
-//         neighbor_pred.H.setZero(self_measurement_size, self_state_size);
-//         neighbor_pred.H.block(0, 0, 3, 3) = Eigen::Matrix3f::Identity(3, 3);
-        
-//         ////////////////////////////////////////////////// derivative w.r.t self //////////////////////////////////////////////////
-//         self.H.setZero();
-//         self.H.block(0, 0, 3, 3) = -Eigen::Matrix3f::Identity(3, 3);
-        
-//         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-//         R_hat = R + neighbor_pred.H*neighbor_pred.P_hat*neighbor_pred.H.transpose();
-
-//         self.s = self.H.transpose()*R_hat.inverse()*self.H;
-//         self.y = self.H.transpose()*R_hat.inverse()*(self.z - self.h + self.H*self.X_hat);
-//     }
-//     self.pre_z = self.z;
-//     return self;
-// }
 
 EIF_data Self_rel_EIF::computeCorrPair(Eigen::Vector4f LM, EIF_data& neighbor_pred)
 {
@@ -76,46 +42,52 @@ EIF_data Self_rel_EIF::computeCorrPair(Eigen::Vector4f LM, EIF_data& neighbor_pr
 
     self.s.setZero();
     self.y.setZero();
-
-    if(self.z != self.pre_z)
+    if(checkPreMeasurement(LM))
     {
-        Eigen::MatrixXf R_hat, R_trans;
-        Eigen::Vector3f E_ns = neighbor_pred.X_hat.segment(0, 3) - self.X_hat.segment(0, 3);
+        Eigen::MatrixXf R_hat;
+        Eigen::Matrix3f R_W2B_i = mav_self_data.R_w2b.inverse();
+        Eigen::Vector3f r_B_hat = R_W2B_i*(neighbor_pred.X_hat.segment(0, 3) - self.X_hat.segment(0, 3));
         
-        float r = sqrt(pow(E_ns(0), 2) + pow(E_ns(1), 2) + pow(E_ns(2), 2));
+        float D = sqrt(pow(r_B_hat(0), 2) + pow(r_B_hat(1), 2) + pow(r_B_hat(2), 2));
         
-        self.h(0) = r;
-        self.h(1) = std::acos(E_ns(2)/r);
-        self.h(2) = std::atan2(E_ns(1), E_ns(0));
+        self.h(0) = D;
+        self.h(1) = std::acos(r_B_hat(2)/D);
+        self.h(2) = std::atan2(r_B_hat(1), r_B_hat(0));
         
         ////////////////////////////////////////////////// derivative w.r.t neighbor //////////////////////////////////////////////////
         
         neighbor_pred.H.setZero(self_measurement_size, self_state_size);
-        neighbor_pred.H(0, 0) = E_ns(0)/r;
-        neighbor_pred.H(0, 1) = E_ns(1)/r;
-        neighbor_pred.H(0, 2) = E_ns(2)/r;
 
-        neighbor_pred.H(1, 0) = (E_ns(2) * E_ns(0)) / (pow(r, 2) * sqrt(pow(E_ns(0), 2)+pow(E_ns(1), 2)));
-        neighbor_pred.H(1, 1) = (E_ns(2) * E_ns(1)) / (pow(r, 2) * sqrt(pow(E_ns(0), 2)+pow(E_ns(1), 2)));
-        neighbor_pred.H(1, 2) = -sqrt(pow(E_ns(0), 2)+pow(E_ns(1), 2)) / pow(r, 2);
-
-        neighbor_pred.H(2, 0) = -E_ns(1)/((pow(E_ns(0), 2)+pow(E_ns(1), 2)));
-        neighbor_pred.H(2, 1) = E_ns(0)/((pow(E_ns(0), 2)+pow(E_ns(1), 2)));
-        neighbor_pred.H(2, 2) = 0;
+        neighbor_pred.H(0, 0) = (R_W2B_i(0, 0)*r_B_hat(0) + R_W2B_i(1, 0)*r_B_hat(1) + R_W2B_i(2, 0)*r_B_hat(2)) / D;
+        neighbor_pred.H(0, 1) = (R_W2B_i(0, 1)*r_B_hat(0) + R_W2B_i(1, 1)*r_B_hat(1) + R_W2B_i(2, 1)*r_B_hat(2)) / D;
+        neighbor_pred.H(0, 2) = (R_W2B_i(0, 2)*r_B_hat(0) + R_W2B_i(1, 2)*r_B_hat(1) + R_W2B_i(2, 2)*r_B_hat(2)) / D;
         
+        neighbor_pred.H(1, 0) = (R_W2B_i(0, 0)*r_B_hat(0)*r_B_hat(2)
+                                + R_W2B_i(1, 0)*r_B_hat(1)*r_B_hat(2)
+                                - R_W2B_i(2, 0)*(r_B_hat(0)*r_B_hat(0) + r_B_hat(1)*r_B_hat(1)))
+                                /(D*D * sqrt(r_B_hat(0)*r_B_hat(0) + r_B_hat(1)*r_B_hat(1)));
+        neighbor_pred.H(1, 1) = (R_W2B_i(0, 1)*r_B_hat(0)*r_B_hat(2)
+                                + R_W2B_i(1, 1)*r_B_hat(1)*r_B_hat(2)
+                                - R_W2B_i(2, 1)*(r_B_hat(0)*r_B_hat(0) + r_B_hat(1)*r_B_hat(1)))
+                                /(D*D * sqrt(r_B_hat(0)*r_B_hat(0) + r_B_hat(1)*r_B_hat(1)));
+        neighbor_pred.H(1, 2) = (R_W2B_i(0, 2)*r_B_hat(0)*r_B_hat(2)
+                                + R_W2B_i(1, 2)*r_B_hat(1)*r_B_hat(2)
+                                - R_W2B_i(2, 2)*(r_B_hat(0)*r_B_hat(0) + r_B_hat(1)*r_B_hat(1)))
+                                /(D*D * sqrt(r_B_hat(0)*r_B_hat(0) + r_B_hat(1)*r_B_hat(1)));
+
+        neighbor_pred.H(2, 0) = (-R_W2B_i(0, 0)*r_B_hat(1) + R_W2B_i(1, 0)*r_B_hat(0)) / (r_B_hat(0)*r_B_hat(0) + r_B_hat(1)*r_B_hat(1));
+        neighbor_pred.H(2, 1) = (-R_W2B_i(0, 1)*r_B_hat(1) + R_W2B_i(1, 1)*r_B_hat(0)) / (r_B_hat(0)*r_B_hat(0) + r_B_hat(1)*r_B_hat(1));
+        neighbor_pred.H(2, 2) = (-R_W2B_i(0, 2)*r_B_hat(1) + R_W2B_i(1, 2)*r_B_hat(0)) / (r_B_hat(0)*r_B_hat(0) + r_B_hat(1)*r_B_hat(1));
         ////////////////////////////////////////////////// derivative w.r.t self //////////////////////////////////////////////////
         self.H = -neighbor_pred.H;
         
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-        Eigen::MatrixXf R2 = 1e-5*Eigen::Matrix3f::Identity(3, 3);
-        R_trans = neighbor_pred.H.block(0, 0, 3, 3)*R2*neighbor_pred.H.block(0, 0, 3, 3).transpose();
-        //std::cout << "R_trans:\n" << R_trans << "\n";
         R_hat = R + neighbor_pred.H*neighbor_pred.P_hat*neighbor_pred.H.transpose();
 
         self.s = self.H.transpose()*R_hat.inverse()*self.H;
         self.y = self.H.transpose()*R_hat.inverse()*(self.z - self.h + self.H*self.X_hat);
     }
-    self.pre_z = self.z;
+    setPreMeasurement(LM);
     return self;
 }
 
@@ -134,3 +106,44 @@ void Self_rel_EIF::computeCorrPairs()
 }
 
 std::vector<EIF_data> Self_rel_EIF::getEIFData(){ return selfWRTneighbors;}
+
+void Self_rel_EIF::setPreMeasurement(Eigen::Vector4f LM)
+{
+    if(pre_lidarMeasurements.size() == 0)
+    {
+        pre_lidarMeasurements.push_back(LM);
+    }
+    else
+    {
+        bool found = false;
+        for(int i=0; i< pre_lidarMeasurements.size(); i++)
+        {
+            if(pre_lidarMeasurements[i](3) == LM(3))
+            {
+                pre_lidarMeasurements[i] = LM;
+                found = true;
+                break;
+            }    
+        }
+        if(!found)
+            pre_lidarMeasurements.push_back(LM);
+    }
+}
+
+bool Self_rel_EIF::checkPreMeasurement(Eigen::Vector4f LM)
+{
+    if(pre_lidarMeasurements.size() > 0)
+    {
+        for(int i=0; i<pre_lidarMeasurements.size(); i++)
+        {
+            if(pre_lidarMeasurements[i](3) == LM(3))
+            {
+                if(pre_lidarMeasurements[i].segment(0, 3) == LM.segment(0, 3))
+                    return false;
+                else
+                    return true;
+            }
+        }
+    }
+    return true;
+}
