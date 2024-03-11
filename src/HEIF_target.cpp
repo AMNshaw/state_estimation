@@ -3,6 +3,9 @@
 HEIF_target::HEIF_target(int x_size=6) : HEIF(x_size)
 {
 	fusionNum = 0;
+
+	std_filter_size = 20;
+	mean_filter_size = 5;
 }
 
 HEIF_target::~HEIF_target(){}
@@ -17,7 +20,7 @@ void HEIF_target::setTargetEstData(std::vector<EIF_data> est_Data)
 
 void HEIF_target::TargetEstDataCI()
 {
-	float trace_sum = 0.0;
+	double trace_sum = 0.0;
 
 	//////////////////////////// X_hat, P_hat ////////////////////////////
     for(int i=0; i<fusionNum; i++)
@@ -46,7 +49,44 @@ void HEIF_target::CI_combination()
 {
 	fusedP = (weightedOmega_hat + weightedS).inverse();
 	fusedX = fusedP*(weightedXi_hat + weightedY);
+
+	est_X.push_back(fusedX);
+	est_P.push_back(fusedP);
+	if(est_X.size() > mean_filter_size)
+	{
+		est_X.pop_front();
+		est_P.pop_front();
+	}
+	//stdDevFilter();
 }
+
+void HEIF_target::stdDevFilter()
+{
+	if(est_X.size() == std_filter_size)
+	{
+		Eigen::VectorXd mean = Eigen::VectorXd::Zero(3);
+		Eigen::MatrixXd covariance = Eigen::MatrixXd::Zero(3, 3);
+		for(const auto& vec : est_X)
+			mean += vec;
+		mean /= static_cast<double>(est_X.size());
+		for(const auto& vec : est_X)
+			covariance += (vec - mean)*(vec - mean).transpose();
+		covariance /= static_cast<double>(est_X.size() - 1);
+		Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> solver(covariance);
+		if (solver.info() != Eigen::Success)
+        	std::cerr << "Eigenvalue decomposition failed!" << std::endl;
+		else
+		{
+			Eigen::VectorXd std_dev = solver.eigenvalues().cwiseSqrt();
+			if((fusedX.segment(3, 3) - mean).sum() > std_dev.sum()*0.5)
+			{
+				fusedP = weightedOmega_hat.inverse();
+				fusedX = fusedP*weightedXi_hat;
+			}
+		}
+    }
+}
+
 
 void HEIF_target::process()
 {

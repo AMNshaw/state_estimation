@@ -10,12 +10,12 @@ class HEIF
 {
 protected:
 
-	Eigen::MatrixXf weightedOmega_hat;
-	Eigen::MatrixXf weightedS;
-	Eigen::VectorXf weightedXi_hat;
-	Eigen::VectorXf weightedY;
-	Eigen::MatrixXf fusedP;
-	Eigen::VectorXf fusedX;
+	Eigen::MatrixXd weightedOmega_hat;
+	Eigen::MatrixXd weightedS;
+	Eigen::VectorXd weightedXi_hat;
+	Eigen::VectorXd weightedY;
+	Eigen::MatrixXd fusedP;
+	Eigen::VectorXd fusedX;
 
 	int fusionNum;
 	int state_size;
@@ -24,7 +24,7 @@ public:
 	~HEIF();
 	void initialize();
 	virtual void CI_combination();
-	Eigen::MatrixXf getFusedCov();
-	Eigen::VectorXf getFusedState();
+	Eigen::MatrixXd getFusedCov();
+	Eigen::VectorXd getFusedState();
 };
 #endif

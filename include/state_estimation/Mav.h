@@ -12,6 +12,7 @@
 #include "ros/param.h"
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/TwistStamped.h>
+#include <geometry_msgs/Quaternion.h>
 #include <sensor_msgs/Imu.h>
 #include <mavros_msgs/State.h>
 #include <tf/tf.h>
@@ -31,10 +32,12 @@ private:
     geometry_msgs::TwistStamped vel_current;
     geometry_msgs::Vector3 acc_current;
     sensor_msgs::Imu imu_current;
+    mavros_msgs::State state;
 
     ros::Subscriber pose_sub;
     ros::Subscriber vel_sub;
     ros::Subscriber imu_sub;
+    ros::Subscriber mav_state_sub;
 
 public:
     MAV();
@@ -49,12 +52,10 @@ public:
     geometry_msgs::PoseStamped getPose();
     geometry_msgs::TwistStamped getVel();
     geometry_msgs::Vector3 getAcc();
-    mavros_msgs::State getCurrentState();
-    double getYaw();
-    void setPose_hz(float hz);
+    mavros_msgs::State getState();
     void setPose(geometry_msgs::Pose Pose);
     void setTwist(geometry_msgs::Twist Twist);
-    void getRPY(float& R, float& P, float& Y);
+    void setOrientation(geometry_msgs::Quaternion q);
 
     string topic;
     int id;
@@ -62,20 +63,26 @@ public:
     bool vel_init;
     bool imu_init;
     int topic_count;
-    float pose_hz;
-
-    static int self_index;
 };
 
 struct MAV_eigen
 {
-	Eigen::Vector3f r;
-    Eigen::Vector3f r_c;
-	Eigen::Vector3f v;
-	Eigen::Vector3f a;
-	Eigen::Vector3f omega_c;
-	Eigen::Matrix3f R_w2b;
-    Eigen::Vector3f RPY;
+	Eigen::Vector3d r;
+    Eigen::Vector3d r_c;
+	Eigen::Vector3d v;
+	Eigen::Vector3d a_imu;
+    Eigen::Vector3d a_world;
+	Eigen::Vector3d omega_c;
+	Eigen::Matrix3d R_w2b;
+    Eigen::Quaterniond q;
 };
+
+/*=================================================================================================================================
+    Conversions
+=================================================================================================================================*/
+
+MAV_eigen mavMsg2Eigen(MAV Mav);
+std::vector<MAV_eigen> mavsMsg2Eigen(std::vector<MAV> Mavs);
+std::vector<MAV_eigen> mavsMsg2Eigen(MAV* Mavs, int mavNum);
 
 #endif

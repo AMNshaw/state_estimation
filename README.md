@@ -3,7 +3,7 @@ Requirements:
 Covariance Tuning:
 
 For Spherical Coordinate:
-
+Without Noise:
 
 If all robots have their own absolute position measurement
 Absolute position rate >= 1hz:
@@ -41,3 +41,12 @@ Q.block(3, 3, 3, 3) = 12e-3*Eigen::MatrixXf::Identity(3, 3); // velocity
 R(0, 0) = 1e-5;
 R(1, 1) = 1e-2;
 R(2, 2) = 1e-2;
+
+
+With zero-mean gaussian noise, std_dev = 2% of the true value:
+Q.block(0, 0, 3, 3) = 1e-2*Eigen::MatrixXf::Identity(3, 3); // position
+Q.block(3, 3, 3, 3) = 6e-3*Eigen::MatrixXf::Identity(3, 3); // velocity
+
+R(0, 0) = 1e-4;
+R(1, 1) = 2e-1;
+R(2, 2) = 2e-1;

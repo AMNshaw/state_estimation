@@ -9,19 +9,20 @@ private:
     MAV_eigen mav_self_data;
     std::vector<EIF_data> neighbors_pred;
     std::vector<EIF_data> selfWRTneighbors;
-    std::vector<Eigen::Vector4f> lidarMeasurements;
-    std::vector<Eigen::Vector4f> pre_lidarMeasurements;
+    std::vector<Eigen::Vector4d> lidarMeasurements;
+    std::vector<Eigen::Vector4d> pre_lidarMeasurements;
     int neighbor_num_curr;
 public:
     Self_rel_EIF();
     ~Self_rel_EIF();
-    void setNeighborData(std::vector<Eigen::Vector4f> LMs, std::vector<EIF_data> robots, MAV_eigen mav_self);
+    void setNeighborData(std::vector<EIF_data> robots);
+    void setLidarMeasurements(std::vector<Eigen::Vector4d> LMs);
     void setEIFpredData(EIF_data pred);
-    EIF_data computeCorrPair(Eigen::Vector4f LM, EIF_data& neighbor);
+    EIF_data computeCorrPair(Eigen::Vector4d LM, EIF_data& neighbor);
     void computeCorrPairs();
     std::vector<EIF_data> getEIFData();
-    void setPreMeasurement(Eigen::Vector4f LM);
-    bool checkPreMeasurement(Eigen::Vector4f LM);
+    void setPreMeasurement(Eigen::Vector4d LM);
+    bool checkPreMeasurement(Eigen::Vector4d LM);
 };
 
 

@@ -4,10 +4,11 @@ target_EIF::target_EIF(int state_size)
 {
 	target_state_size = state_size;
 	target_measurement_size = 3;
+	filter_init = false;
 	EIF_data_init(target_state_size, target_measurement_size, &T);
-	Q.block(0, 0, 3, 3) = 7e-4*Eigen::MatrixXf::Identity(3, 3);
-	Q.block(3, 3, 3, 3) = 7e-2*Eigen::MatrixXf::Identity(3, 3);
-	R = 1e-5*Eigen::MatrixXf::Identity(3, 3);
+	Q.block(0, 0, 3, 3) = 7e-4*Eigen::MatrixXd::Identity(3, 3);
+	Q.block(3, 3, 3, 3) = 7e-3*Eigen::MatrixXd::Identity(3, 3);
+	R = 1e-5*Eigen::MatrixXd::Identity(3, 3);
 
 	fx = 565.6008952774197;
 	fy = 565.6008952774197;
@@ -18,25 +19,39 @@ target_EIF::target_EIF(int state_size)
 }
 target_EIF::~target_EIF(){}
 
-void target_EIF::setData(MAV_eigen MAV, 
-						Eigen::Vector3f bBox, 
-						EIF_data self_data)
+void target_EIF::setInitialState(Eigen::Vector3d Bbox)
 {
-	Mav_curr = MAV;
-	Mav_curr.r_c = Mav_curr.r + Mav_curr.R_w2b.inverse()*t_b2c;
-	boundingBox = bBox;
-	self = self_data;
+	Eigen::Matrix3d K;
+	Eigen::Matrix3d R_w2c = R_b2c*Mav_eigen_self.R_w2b;
+	K << fx, 0, cx,
+		0, fy, cy,
+		0, 0, Bbox(2);
+	
+	//T.X.segment(0, 3) = R_w2c.inverse()*K.inverse()*Bbox;
+	T.X.segment(0, 3) << 0, 0, 5;
+	T.X.segment(3, 3) << 0, 0, 0;
+	std::cout << "Init:\n" << T.X.segment(0, 3) << std::endl;
+	T.P.setIdentity();
+	T.P *= 1e-3;
+	filter_init = true;
 }
 
+void target_EIF::setMeasurement(Eigen::Vector3d bBox){boundingBox = bBox;}
+
+void target_EIF::setSEIFpredData(EIF_data self_data)
+{
+	self = self_data;
+	self.X_hat.segment(0, 3) = self.X_hat.segment(0, 3) + Mav_eigen_self.R_w2b.inverse()*t_b2c;
+}
 
 void target_EIF::computePredPairs(double delta_t)
 {
-	float dt = static_cast<float>(delta_t);
+	double dt = static_cast<double>(delta_t);
 	
 	///////////////////////////// X, F ////////////////////////////////
 
 	T.F.setIdentity();
-	T.F.block(0, 3, 3, 3) = Eigen::Matrix3f::Identity(3, 3)*dt;
+	T.F.block(0, 3, 3, 3) = Eigen::Matrix3d::Identity(3, 3)*dt;
 
 	T.P_hat = T.F*T.P*T.F.transpose() + Q;
 	T.X_hat = T.F*T.X;
@@ -49,11 +64,11 @@ void target_EIF::computeCorrPairs()
 	T.y.setZero();
 	self.s.setZero();
 	self.y.setZero();
-	if(T.z != T.pre_z)
+	if(T.z != T.pre_z && T.z(2) >= 2.0 && T.z(2) <= 12.0)
 	{
-		Eigen::MatrixXf R_hat, R_bar;
-		Eigen::Matrix3f R_w2c = R_b2c*Mav_curr.R_w2b;
-		Eigen::Vector3f r_qc_c = R_w2c*(T.X_hat.segment(0, 3) - Mav_curr.r_c);
+		Eigen::MatrixXd R_hat, R_bar;
+		Eigen::Matrix3d R_w2c = R_b2c*Mav_eigen_self.R_w2b;
+		Eigen::Vector3d r_qc_c = R_w2c*(T.X_hat.segment(0, 3) - self.X_hat.segment(0, 3));
 
 		X = r_qc_c(0)/r_qc_c(2);
 		Y = r_qc_c(1)/r_qc_c(2);
@@ -91,7 +106,7 @@ void target_EIF::computeCorrPairs()
 	T.pre_z = T.z;
 }
 
-void target_EIF::setFusionPairs(Eigen::MatrixXf fusedP, Eigen::VectorXf fusedX)
+void target_EIF::setFusionPairs(Eigen::MatrixXd fusedP, Eigen::VectorXd fusedX, double time)
 {
     T.P = fusedP;
     T.X = fusedX;
@@ -99,3 +114,4 @@ void target_EIF::setFusionPairs(Eigen::MatrixXf fusedP, Eigen::VectorXf fusedX)
 
 EIF_data target_EIF::getTgtData(){return T;}
 EIF_data target_EIF::getSelfData(){return self;}
+

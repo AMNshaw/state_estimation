@@ -6,8 +6,8 @@ Self_EIF::Self_EIF()
 	self_measurement_size = 3;
 	
 	EIF_prediction_init(self_state_size, &self);
-	Q.block(0, 0, 3, 3) = 1e-6*Eigen::MatrixXf::Identity(3, 3); // position
-    Q.block(3, 3, 3, 3) = 6e-3*Eigen::MatrixXf::Identity(3, 3); // velocity
+	Q.block(0, 0, 3, 3) = 1e-2*Eigen::MatrixXd::Identity(3, 3); // position
+    Q.block(3, 3, 3, 3) = 8e-1*Eigen::MatrixXd::Identity(3, 3); // velocity
 }
 Self_EIF::~Self_EIF(){}
 

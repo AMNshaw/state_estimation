@@ -8,27 +8,22 @@ Self_rel_EIF::Self_rel_EIF()
     
     //////////////////////// Covariance Tuning ////////////////////////
 
-    R(0, 0) = 1e-5;
-    R(1, 1) = 1e-2;
-    R(2, 2) = 1e-2;
-
-    // R(0, 0) = 1e-5;
-    // R(1, 1) = 1e-5;
-    // R(2, 2) = 1e-5;
-
+    R(0, 0) = 1e-4;
+    R(1, 1) = 2e-1;
+    R(2, 2) = 2e-1;
 }
 Self_rel_EIF::~Self_rel_EIF(){}
 
-void Self_rel_EIF::setNeighborData(std::vector<Eigen::Vector4f> LMs
-                        , std::vector<EIF_data> robots
-                        , MAV_eigen mav_self)
-{ 
-    mav_self_data = mav_self;
+void Self_rel_EIF::setLidarMeasurements(std::vector<Eigen::Vector4d> LMs)
+{
     lidarMeasurements = LMs;
+}
+
+void Self_rel_EIF::setNeighborData(std::vector<EIF_data> robots)
+{ 
     neighbor_num_curr = 0;
     neighbor_num_curr = robots.size();
     neighbors_pred = robots;
-    
 }
 
 void Self_rel_EIF::setEIFpredData(EIF_data pred)
@@ -36,7 +31,7 @@ void Self_rel_EIF::setEIFpredData(EIF_data pred)
     self = pred;
 }
 
-EIF_data Self_rel_EIF::computeCorrPair(Eigen::Vector4f LM, EIF_data& neighbor_pred)
+EIF_data Self_rel_EIF::computeCorrPair(Eigen::Vector4d LM, EIF_data& neighbor_pred)
 {
     self.z = LM.segment(0, 3);
 
@@ -44,11 +39,11 @@ EIF_data Self_rel_EIF::computeCorrPair(Eigen::Vector4f LM, EIF_data& neighbor_pr
     self.y.setZero();
     if(checkPreMeasurement(LM))
     {
-        Eigen::MatrixXf R_hat;
-        Eigen::Matrix3f R_W2B_i = mav_self_data.R_w2b.inverse();
-        Eigen::Vector3f r_B_hat = R_W2B_i*(neighbor_pred.X_hat.segment(0, 3) - self.X_hat.segment(0, 3));
+        Eigen::MatrixXd R_hat;
+        Eigen::Matrix3d R_W2B_i = Mav_eigen_self.R_w2b;
+        Eigen::Vector3d r_B_hat = R_W2B_i*(neighbor_pred.X_hat.segment(0, 3) - self.X_hat.segment(0, 3));
         
-        float D = sqrt(pow(r_B_hat(0), 2) + pow(r_B_hat(1), 2) + pow(r_B_hat(2), 2));
+        double D = sqrt(pow(r_B_hat(0), 2) + pow(r_B_hat(1), 2) + pow(r_B_hat(2), 2));
         
         self.h(0) = D;
         self.h(1) = std::acos(r_B_hat(2)/D);
@@ -78,6 +73,7 @@ EIF_data Self_rel_EIF::computeCorrPair(Eigen::Vector4f LM, EIF_data& neighbor_pr
         neighbor_pred.H(2, 0) = (-R_W2B_i(0, 0)*r_B_hat(1) + R_W2B_i(1, 0)*r_B_hat(0)) / (r_B_hat(0)*r_B_hat(0) + r_B_hat(1)*r_B_hat(1));
         neighbor_pred.H(2, 1) = (-R_W2B_i(0, 1)*r_B_hat(1) + R_W2B_i(1, 1)*r_B_hat(0)) / (r_B_hat(0)*r_B_hat(0) + r_B_hat(1)*r_B_hat(1));
         neighbor_pred.H(2, 2) = (-R_W2B_i(0, 2)*r_B_hat(1) + R_W2B_i(1, 2)*r_B_hat(0)) / (r_B_hat(0)*r_B_hat(0) + r_B_hat(1)*r_B_hat(1));
+
         ////////////////////////////////////////////////// derivative w.r.t self //////////////////////////////////////////////////
         self.H = -neighbor_pred.H;
         
@@ -107,7 +103,7 @@ void Self_rel_EIF::computeCorrPairs()
 
 std::vector<EIF_data> Self_rel_EIF::getEIFData(){ return selfWRTneighbors;}
 
-void Self_rel_EIF::setPreMeasurement(Eigen::Vector4f LM)
+void Self_rel_EIF::setPreMeasurement(Eigen::Vector4d LM)
 {
     if(pre_lidarMeasurements.size() == 0)
     {
@@ -130,7 +126,7 @@ void Self_rel_EIF::setPreMeasurement(Eigen::Vector4f LM)
     }
 }
 
-bool Self_rel_EIF::checkPreMeasurement(Eigen::Vector4f LM)
+bool Self_rel_EIF::checkPreMeasurement(Eigen::Vector4d LM)
 {
     if(pre_lidarMeasurements.size() > 0)
     {

@@ -11,7 +11,7 @@
 #include <message_filters/sync_policies/exact_time.h>
 
 #include <sensor_msgs/Image.h>
-#include <std_msgs/Float32MultiArray.h>
+#include <std_msgs/Float64MultiArray.h>
 #include <state_estimation/Int32MultiArrayStamped.h>
 #include <cv_bridge/cv_bridge.h>
 #include <opencv2/imgproc/imgproc.hpp>
@@ -32,7 +32,7 @@ private:
 
   sensor_msgs::Image sync_img_yolo;
   sensor_msgs::Image sync_img_depth;
-  std_msgs::Float32MultiArray sync_bbox_msgs;
+  std_msgs::Float64MultiArray sync_bbox_msgs;
 
   string vehicle;
   string yolo_input_topic;
@@ -54,7 +54,7 @@ public:
   Image_process(ros::NodeHandle &nh, string group_ns, int ID);
   ~Image_process();
 
-  float getDepth(int u, int v);
+  double getDepth(int u, int v);
   void set_topic(string group_ns, int ID);
   void set_bbox_col(int col);
   void reArrangeBbox(state_estimation::Int32MultiArrayStamped bbox_msgs);
@@ -68,7 +68,7 @@ Image_process::Image_process(ros::NodeHandle &nh, string group_ns, int ID)
 
   sync_yolo_pub = nh.advertise<sensor_msgs::Image>(yolo_output_topic, 1);
   sync_depth_pub = nh.advertise<sensor_msgs::Image>(depth_output_topic, 1);
-  sync_bbox_pub = nh.advertise<std_msgs::Float32MultiArray>(bbox_output_topic, 1);
+  sync_bbox_pub = nh.advertise<std_msgs::Float64MultiArray>(bbox_output_topic, 1);
 
   message_filters::Subscriber<sensor_msgs::Image> img_yolo_sub(nh, yolo_input_topic, 1);
   message_filters::Subscriber<sensor_msgs::Image> img_depth_sub(nh, depth_input_topic, 1);
@@ -119,16 +119,16 @@ void Image_process::sync_cb(const sensor_msgs::ImageConstPtr& ori_yolo,
 
 void Image_process::reArrangeBbox(state_estimation::Int32MultiArrayStamped bbox_msgs)
 {
-  float u, v;
+  double u, v;
   vector<int> bbox_data = bbox_msgs.data;
-  vector<float> reArrangeBbox_data;
+  vector<double> reArrangeBbox_data;
 
   if(bbox_data.size() > 0)
   {
     for(int i = 0; i <bbox_data.size(); i+=bbox_col)
     {
-      u = (float)(bbox_data[i+1] + bbox_data[i+3])/2;
-      v = (float)(bbox_data[i+2] + bbox_data[i+4])/2;
+      u = (double)(bbox_data[i+1] + bbox_data[i+3])/2;
+      v = (double)(bbox_data[i+2] + bbox_data[i+4])/2;
       reArrangeBbox_data.push_back(u);
       reArrangeBbox_data.push_back(v);
       reArrangeBbox_data.push_back(getDepth((int)u, (int)v));
@@ -137,7 +137,7 @@ void Image_process::reArrangeBbox(state_estimation::Int32MultiArrayStamped bbox_
   }
 }
 
-float Image_process::getDepth(int u, int v)
+double Image_process::getDepth(int u, int v)
 {
   float depth = 0;
   cv_bridge::CvImagePtr cv_ptr = cv_bridge::toCvCopy(sync_img_depth, sensor_msgs::image_encodings::TYPE_32FC1);
@@ -149,7 +149,7 @@ float Image_process::getDepth(int u, int v)
   depth += cv_ptr->image.at<float>(v, u-1);
   depth /=5;
 
-  return depth;
+  return static_cast<double>(depth);
 }
 
 void Image_process::set_topic(string group_ns, int ID)

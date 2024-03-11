@@ -9,7 +9,7 @@ class HEIF_self : public HEIF
 private:
 
 	std::vector<EIF_data> self_est_neighbor;
-	std::vector<float> weight;
+	std::vector<double> weight;
 	EIF_data self_est;
 
 	int fusionNum;

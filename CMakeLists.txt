@@ -60,7 +60,6 @@ find_package(dlib REQUIRED)
    FILES
    Int32MultiArrayStamped.msg  
    EIFpairStamped.msg
-   RMSE.msg
    Plot.msg
  )
 
@@ -115,9 +114,8 @@ find_package(dlib REQUIRED)
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES state_estimation
-#  CATKIN_DEPENDS roscpp rospy std_msgs
+  INCLUDE_DIRS include
+  LIBRARIES Mav CommonFuncs
 #  DEPENDS system_lib
 CATKIN_DEPENDS message_runtime cv_bridge roscpp rospy std_msgs geometry_msgs pcl_conversions
 )
@@ -129,7 +127,7 @@ CATKIN_DEPENDS message_runtime cv_bridge roscpp rospy std_msgs geometry_msgs pcl
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-# include
+  include
   ${catkin_INCLUDE_DIRS}
   ${EIGEN3_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS}
@@ -146,6 +144,24 @@ add_library(Mav
 )
 target_include_directories(Mav PRIVATE
   include/${PROJECT_NAME}/ )
+target_link_libraries(Mav
+  ${catkin_LIBRARIES})
+
+add_library(GT_measurement_ros
+  src/GT_measurement_ros.cpp
+)
+target_include_directories(GT_measurement_ros PRIVATE
+ include/${PROJECT_NAME}/ )
+target_link_libraries(GT_measurement_ros
+ ${catkin_LIBRARIES})
+
+add_library(EIFpairs_ros
+ src/EIFpairs_ros.cpp
+)
+target_include_directories(EIFpairs_ros PRIVATE
+include/${PROJECT_NAME}/ )
+target_link_libraries(EIFpairs_ros
+${catkin_LIBRARIES})
 
 add_library(EIF
    src/EIF.cpp
@@ -157,12 +173,10 @@ add_library(EIF
    src/HEIF_self.cpp
    src/HEIF_target.cpp
 )
-
 target_link_libraries(EIF
   ${catkin_LIBRARIES} 
   ${dlib_LIBRARIES}
   )
-
 target_include_directories(EIF PRIVATE
   include/${PROJECT_NAME}/)
 
@@ -180,6 +194,8 @@ target_link_libraries(state_estimation
   Mav
   EIF
   CommonFuncs
+  GT_measurement_ros
+  EIFpairs_ros
   ${catkin_LIBRARIES} )
 target_include_directories(state_estimation PRIVATE
   include/${PROJECT_NAME}/ ) 
@@ -241,18 +257,20 @@ target_include_directories(self_msg_sync PRIVATE
 
 ## Mark libraries for installation
 ## See http://docs.ros.org/melodic/api/catkin/html/howto/format1/building_libraries.html
-# install(TARGETS ${PROJECT_NAME}
-#   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#   RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION}
-# )
+install(
+  TARGETS ${PROJECT_NAME}
+  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION}
+)
 
 ## Mark cpp header files for installation
-# install(DIRECTORY include/${PROJECT_NAME}/
-#   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-#   FILES_MATCHING PATTERN "*.h"
-#   PATTERN ".svn" EXCLUDE
-# )
+install(
+  DIRECTORY include/${PROJECT_NAME}/
+  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+  #  FILES_MATCHING PATTERN "*.h"
+  #  PATTERN ".svn" EXCLUDE
+)
 
 ## Mark other files for installation (e.g. launch and bag files, etc.)
 # install(FILES

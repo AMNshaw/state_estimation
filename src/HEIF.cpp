@@ -22,5 +22,5 @@ void HEIF::CI_combination()
 	fusedX = fusedP*(weightedXi_hat + weightedY);
 }
 
-Eigen::MatrixXf HEIF::getFusedCov(){return fusedP;}
-Eigen::VectorXf HEIF::getFusedState(){return fusedX;}
+Eigen::MatrixXd HEIF::getFusedCov(){return fusedP;}
+Eigen::VectorXd HEIF::getFusedState(){return fusedX;}

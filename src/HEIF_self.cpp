@@ -23,7 +23,7 @@ void HEIF_self::setSelfEstData(EIF_data self)
 
 void HEIF_self::eighborEstDataCI()
 {
-	float trace_sum = 0.0;
+	double trace_sum = 0.0;
 
 	//////////////////////////// s, y ////////////////////////////
 	for(int i=0; i<fusionNum; i++)
@@ -47,9 +47,6 @@ void HEIF_self::CI_combination()
 	weightedY += self_est.y;
 	fusedP = (weightedOmega_hat + weightedS).inverse();
 	fusedX = fusedP*(weightedXi_hat + weightedY);
-
-	std::cout << "Omega trace: " << weightedOmega_hat.trace() << std::endl;
-	std::cout << "S trace: " << weightedS.trace() << std::endl;
 }
 
 void HEIF_self::process()

@@ -5,27 +5,29 @@ Self_pose_EIF::Self_pose_EIF()
 	self_measurement_size = 3;
     EIF_measurement_init(self_state_size, self_measurement_size, &self);
     u.setZero(self_state_size);
+    measurement.setZero();
     //////////////////////// Covariance Tuning ////////////////////////
 
-    R = 1e-5*Eigen::MatrixXf::Identity(self_measurement_size, self_measurement_size);
+    R = 1e-8*Eigen::MatrixXd::Identity(self_measurement_size, self_measurement_size);
 }
 Self_pose_EIF::~Self_pose_EIF(){}
 
-void Self_pose_EIF::setData(Eigen::Vector3f acc, Eigen::Vector3f pose)
+void Self_pose_EIF::setMeasurement(Eigen::Vector3d z)
 {
-    curr_pose = pose;
-    curr_acc = acc;
+    measurement = z;
 }
 
 void Self_pose_EIF::computePredPairs(double delta_t)
 {
-    float dt = static_cast<float>(delta_t);
+    double dt = static_cast<double>(delta_t);
+    Eigen::Vector3d world_a = Mav_eigen_self.R_w2b.inverse()*Mav_eigen_self.a_imu;
+    world_a(2) += -9.80665;
 
     self.F.setIdentity();
-    self.F.block(0, 3, 3, 3) = Eigen::Matrix3f::Identity(3, 3)*dt;
+    self.F.block(0, 3, 3, 3) = Eigen::Matrix3d::Identity(3, 3)*dt;
 
-    u.segment(0, 3) = 1/2*curr_acc*dt*dt;
-    u.segment(3, 3) = curr_acc*dt;
+    u.segment(0, 3) = 1/2*dt*dt*world_a;
+    u.segment(3, 3) = world_a*dt;
     self.X_hat = self.F*self.X + u;
 
     self.P_hat = self.F*self.P*self.F.transpose() + Q;
@@ -33,7 +35,7 @@ void Self_pose_EIF::computePredPairs(double delta_t)
 
 void Self_pose_EIF::computeCorrPairs()
 {
-    self.z = curr_pose ;
+    self.z = measurement;
 
     self.s.setZero();
     self.y.setZero();
@@ -53,7 +55,7 @@ void Self_pose_EIF::computeCorrPairs()
 }
 
 EIF_data Self_pose_EIF::getEIFData(){return self;}
-void Self_pose_EIF::setFusionPairs(Eigen::MatrixXf fusedP, Eigen::VectorXf fusedX)
+void Self_pose_EIF::setFusionPairs(Eigen::MatrixXd fusedP, Eigen::VectorXd fusedX)
 {
     self.P = fusedP;
     self.X = fusedX;
@@ -63,4 +65,6 @@ void Self_pose_EIF::setCurrState(MAV_eigen MAV)
 {
     self.X.segment(0, 3) = MAV.r;
     self.X.segment(3, 3) = MAV.v;
+
+    std::cout << "curr_state:\n" << self.X << std::endl;
 }

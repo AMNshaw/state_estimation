@@ -6,29 +6,34 @@ private:
 
     int target_state_size;
 	int target_measurement_size;
+    
 
-    float fx;
-	float fy;
-	float cx;
-	float cy;
-    float X;
-    float Y;
-    float Z;
+    double fx;
+	double fy;
+	double cx;
+	double cy;
+    double X;
+    double Y;
+    double Z;
 
     EIF_data T;
     EIF_data self;
-    Eigen::Vector3f boundingBox;
+    Eigen::Vector3d boundingBox;
 
     MAV_eigen Mav_curr;
 
 public:
     target_EIF(int state_size);
     ~target_EIF();
+    void setInitialState(Eigen::Vector3d Bbox);
     void computePredPairs(double delta_t);
     void computeCorrPairs();
-    void setData(MAV_eigen MAV, Eigen::Vector3f bBox, EIF_data self);
-    void setFusionPairs(Eigen::MatrixXf fusedP, Eigen::VectorXf fusedX);
+    void setMeasurement(Eigen::Vector3d bBox);
+    void setSEIFpredData(EIF_data self);
+    void setFusionPairs(Eigen::MatrixXd fusedP, Eigen::VectorXd fusedX, double time);
 
     EIF_data getTgtData();
     EIF_data getSelfData();
+
+    bool filter_init;
 };
