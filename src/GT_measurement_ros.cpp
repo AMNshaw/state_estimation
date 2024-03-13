@@ -27,6 +27,7 @@ GT_measurement::GT_measurement(ros::NodeHandle& nh_, int id, int mavnum)
     =================================================================================================================================*/	
     bboxes_sub = nh.subscribe<std_msgs::Float64MultiArray>("synchronizer/yolov7/boundingBox", 2, &GT_measurement::bboxes_cb, this);
 	bbox_count = 0;
+	no_bbox_count = 0;
 	checkCount = 0;
 	bbox_eigen_past << 320, 240, 4;
 	bbox_eigen = bbox_eigen_past;
@@ -134,7 +135,6 @@ Eigen::Vector3d GT_measurement::getPositionMeasurement(){return positionMeasurem
 =================================================================================================================================*/
 void GT_measurement::bboxes_cb(const std_msgs::Float64MultiArray::ConstPtr& msg)
 {
-	bbox_eigen_past = bbox_eigen;
     bboxes_raw = msg->data;
 	
 	std::vector<Eigen::Vector3d> bboxes;
@@ -158,6 +158,7 @@ void GT_measurement::bboxes_cb(const std_msgs::Float64MultiArray::ConstPtr& msg)
 	}
 	else if(bboxes_raw.size() == 3)
 			bbox_eigen << bboxes_raw[0], bboxes_raw[1], bboxes_raw[2];
+	no_bbox_count = 0;
 }
 
 bool GT_measurement::ifCameraMeasure(){return gotBbox;}
@@ -165,6 +166,7 @@ void GT_measurement::bbox_check()
 {
 	if(!gotBbox)
 	{
+		no_bbox_count = 0;
 		checkCount++;
 		if(checkCount == rosRate)
 		{
@@ -174,7 +176,7 @@ void GT_measurement::bbox_check()
 		if(bbox_eigen != bbox_eigen_past)
 		{
 			bbox_count++;
-			if(bbox_count == 20)
+			if(bbox_count == 10)
 			{
 				bbox_count = 0;
 				checkCount = 0;
@@ -186,15 +188,12 @@ void GT_measurement::bbox_check()
 	{
 		if(bbox_eigen == bbox_eigen_past)
 		{
-			bbox_count++;
-			if(bbox_count == rosRate)
-			{
-				bbox_count = 0;
+			no_bbox_count++;
+			if(no_bbox_count == rosRate)
 				gotBbox = false;
-			}
 		}
 	}
-
+	bbox_eigen_past = bbox_eigen;
 }
 
 Eigen::Vector3d GT_measurement::getBboxEigen(){return bbox_eigen;}

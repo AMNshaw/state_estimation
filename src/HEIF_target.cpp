@@ -6,6 +6,8 @@ HEIF_target::HEIF_target(int x_size=6) : HEIF(x_size)
 
 	std_filter_size = 20;
 	mean_filter_size = 5;
+
+	qpAcc.setZero();
 }
 
 HEIF_target::~HEIF_target(){}
@@ -95,3 +97,99 @@ void HEIF_target::process()
 		TargetEstDataCI();
 	CI_combination();
 }
+
+/*=================================================================================================================================
+		Quadratic Programming
+=================================================================================================================================*/
+	
+void HEIF_target::QP_pushData(double time, Eigen::Vector3d position)
+{
+	if(abs(position(0)) > 0)
+	{
+		t.push_back(time);
+		positions.push_back(position);
+	}
+	if(t.size() > qp.dataNum)
+	{
+		t.pop_front();
+		positions.pop_front();
+	}
+	if(t.size() == qp.dataNum)
+	{ 
+		computeQP();
+	}
+}
+
+bool HEIF_target::QP_init(int dataNum, int order)
+{
+	qp.dataNum = dataNum;
+	qp.functionOrder = order;
+	if(dataNum+1 < order)
+	{
+		std::cout << "QP init failed\n";
+		return false;
+	}
+
+	qp.A.resize(qp.dataNum*3, (qp.functionOrder+1)*3);
+	qp.Y.resize(qp.dataNum*3);
+	qp.lower_bound.resize(qp.dataNum*3);
+	qp.upper_bound.resize(qp.dataNum*3);
+
+	qp.solver.clearSolver();
+	qp.solver.data()->setNumberOfVariables((qp.functionOrder+1)*3); // for a, b, c, d
+    qp.solver.data()->setNumberOfConstraints(0);
+	qp.solver.settings()->setWarmStart(true);
+	qp.solver.settings()->setMaxIteration(1000);
+	qp.solver.settings()->setRelativeTolerance(1e-3);
+    qp.solver.settings()->setVerbosity(false); // Set to true if you want to see OSQP's output
+    
+    qp.solver.initSolver();
+}
+
+bool HEIF_target::computeQP()
+{
+	std::vector<double> t_(qp.dataNum);
+	for(int i=0; i<qp.dataNum; i++)
+		t_[i] = t[i] - t[0];
+
+	for(int i=0; i<qp.dataNum; i++)
+	{
+		for(int j=0; j<qp.functionOrder+1; j++)
+			qp.A(i, j) = pow(t_[i], j);
+	}
+	qp.A.block(qp.dataNum, qp.functionOrder+1, qp.dataNum, qp.functionOrder+1) = qp.A.block(0, 0, qp.dataNum, qp.functionOrder+1);
+	qp.A.block(qp.dataNum*2, (qp.functionOrder+1)*2, qp.dataNum, qp.functionOrder+1) = qp.A.block(0, 0, qp.dataNum, qp.functionOrder+1);
+
+	for(int i=0; i<qp.dataNum; i++)
+	{
+		qp.Y(i) = positions[i](0);
+		qp.Y(i+qp.dataNum) = positions[i](1);
+		qp.Y(i+qp.dataNum*2) = positions[i](2);
+	}
+	qp.P = 2*qp.A.transpose()*qp.A;
+	qp.q = -2*qp.A.transpose()*qp.Y;
+
+	Eigen::SparseMatrix<double> P_sparse = qp.P.sparseView();
+
+	qp.solver.data()->clearHessianMatrix();
+    qp.solver.data()->setHessianMatrix(P_sparse);
+    qp.solver.data()->setGradient(qp.q);
+
+	if (qp.solver.solveProblem() == OsqpEigen::ErrorExitFlag::NoError) 
+	{
+        qp.solution = qp.solver.getSolution();
+		qpAcc(0) = 2*qp.solution(2);
+		qpAcc(1) = 2*qp.solution(2+(qp.functionOrder+1));
+		qpAcc(2) = 2*qp.solution(2+(qp.functionOrder+1)*2);
+		//std::cout << "QPsolution:\n" << qp.solution << "\n";
+		return true;
+    }
+	else 
+	{
+        std::cout << "Problem in solving" << std::endl;
+		return false;
+    }
+	return true;
+}
+
+Eigen::Vector3d HEIF_target::getQpAcc(){return qpAcc;}

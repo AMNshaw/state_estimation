@@ -141,12 +141,11 @@ double Image_process::getDepth(int u, int v)
 {
   float depth = 0;
   cv_bridge::CvImagePtr cv_ptr = cv_bridge::toCvCopy(sync_img_depth, sensor_msgs::image_encodings::TYPE_32FC1);
-  
   depth += cv_ptr->image.at<float>(v, u);
-  depth += cv_ptr->image.at<float>(v+1, u);
   depth += cv_ptr->image.at<float>(v-1, u);
-  depth += cv_ptr->image.at<float>(v, u+1);
-  depth += cv_ptr->image.at<float>(v, u-1);
+  depth += cv_ptr->image.at<float>(v-2, u);
+  depth += cv_ptr->image.at<float>(v-1, u+1);
+  depth += cv_ptr->image.at<float>(v-1, u-1);
   depth /=5;
 
   return static_cast<double>(depth);

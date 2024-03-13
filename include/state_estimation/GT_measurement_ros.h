@@ -49,6 +49,7 @@ private:
 	Eigen::Vector3d bbox_eigen_past;
 
     int bbox_count;
+    int no_bbox_count;
     int checkCount;
     bool gotBbox;
 

@@ -4,6 +4,7 @@
 
 #include "HEIF.h"
 #include <deque>
+#include "OsqpEigen/OsqpEigen.h"
 
 class HEIF_target : public HEIF
 {
@@ -19,6 +20,27 @@ private:
     int std_filter_size;
 	int mean_filter_size;
 
+	/*=================================================================================================================================
+		Quadratic Programming
+	=================================================================================================================================*/
+	struct QP
+	{
+		Eigen::MatrixXd A;
+		Eigen::MatrixXd P;
+		Eigen::VectorXd q;
+		Eigen::VectorXd Y;
+		Eigen::VectorXd lower_bound;
+		Eigen::VectorXd upper_bound;
+		Eigen::VectorXd solution;
+		int dataNum;
+		int functionOrder;
+
+		OsqpEigen::Solver solver;
+	} qp;
+	
+	std::deque<double> t;
+	std::deque<Eigen::Vector3d> positions;
+	Eigen::Vector3d qpAcc;
 public:
 	HEIF_target(int x_size);
 	~HEIF_target();
@@ -28,6 +50,13 @@ public:
 	void stdDevFilter();
 	void process();
 
-	
+	/*=================================================================================================================================
+		Quadratic Programming
+	=================================================================================================================================*/
+	void QP_pushData(double t, Eigen::Vector3d position);
+	bool QP_init(int dataNum, int order);
+	bool computeQP();
+	Eigen::Vector3d getQpAcc();
 };
+
 #endif

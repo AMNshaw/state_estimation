@@ -20,7 +20,7 @@ find_package(catkin REQUIRED COMPONENTS
 find_package(Eigen3 REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(dlib REQUIRED)
-
+find_package(OsqpEigen REQUIRED)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -139,6 +139,14 @@ include_directories(
 #   src/${PROJECT_NAME}/state_estimation.cpp
 # )
 
+add_library(Camera
+   src/Camera.cpp
+)
+target_include_directories(Camera PRIVATE
+  include/${PROJECT_NAME}/ )
+target_link_libraries(Camera
+  ${catkin_LIBRARIES})
+
 add_library(Mav
    src/Mav.cpp
 )
@@ -176,15 +184,11 @@ add_library(EIF
 target_link_libraries(EIF
   ${catkin_LIBRARIES} 
   ${dlib_LIBRARIES}
+  OsqpEigen::OsqpEigen 
+  Camera
   )
 target_include_directories(EIF PRIVATE
   include/${PROJECT_NAME}/)
-
-add_library(CommonFuncs
-  src/CommonFuncs.cpp
-)
-target_include_directories(CommonFuncs PRIVATE
-  include/${PROJECT_NAME}/ )
 
 # state_estimation
 add_executable(state_estimation 
@@ -192,10 +196,9 @@ add_executable(state_estimation
   )
 target_link_libraries(state_estimation
   Mav
-  EIF
-  CommonFuncs
   GT_measurement_ros
   EIFpairs_ros
+  EIF
   ${catkin_LIBRARIES} )
 target_include_directories(state_estimation PRIVATE
   include/${PROJECT_NAME}/ ) 

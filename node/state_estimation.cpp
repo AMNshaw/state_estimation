@@ -24,7 +24,6 @@
 #include "TEIF.h"
 #include "HEIF_self.h"
 #include "HEIF_target.h"
-#include "CommonFuncs.h"
 #include "SEIF_pose.h"
 #include "SEIF_neighbors.h"
 #include "GT_measurement_ros.h"
@@ -67,9 +66,10 @@ int main(int argc, char **argv)
 	MAV mav(nh, vehicle, ID);
 	EIFpairs_ros eif_ros(nh, vehicle, ID, mavNum);
 	GT_measurement gt_m(nh, ID, 4);
+	gt_m.setRosRate(rosRate);
 	MAV_eigen mav_eigen;
 
-	gt_m.setRosRate(rosRate);
+	
 
 	while(ros::ok())
 	{
@@ -163,8 +163,8 @@ int main(int argc, char **argv)
 		sheif.process();
 		SEIF_pose.setFusionPairs(sheif.getFusedCov(), sheif.getFusedState());
 		
-		std::cout << "SEIF:\n";
-		eif_ros.selfState_Plot_pub.publish(compare(gt_m.getGTs_eigen()[ID], sheif.getFusedState()));
+		// std::cout << "SEIF:\n";
+		// eif_ros.selfState_Plot_pub.publish(compare(gt_m.getGTs_eigen()[ID], sheif.getFusedState()));
 		
 		// -------------------------------------Target-------------------------------------
 		std::vector<EIF_data> allTgtEIFData;
@@ -174,10 +174,15 @@ int main(int argc, char **argv)
 		theif.setTargetEstData(allTgtEIFData);
 		theif.process();
 		if(gt_m.ifCameraMeasure())
+		{
 			teif.setFusionPairs(theif.getFusedCov(), theif.getFusedState(), ros::Time::now().toSec());
-		
+			theif.QP_init(20, 2);
+			theif.QP_pushData(ros::Time::now().toSec(), theif.getFusedState().segment(0, 3));
+			teif.setEstAcc(theif.getQpAcc());
+		}
 		std::cout << "TEIF:\n";
 		eif_ros.tgtState_Plot_pub.publish(compare(gt_m.getGTs_eigen()[0], theif.getFusedState()));
+		
 		
 		/*=================================================================================================================================
 			Publish to mavros for feedback
@@ -203,7 +208,7 @@ int main(int argc, char **argv)
 		fusedTwistMsg.twist.angular.y = mav_eigen.omega_c(1);
 		fusedTwistMsg.twist.angular.z = mav_eigen.omega_c(2);
 
-		// -------------------------------------If camera detect target-------------------------------------
+		// -------------------------------------Camera detect?-------------------------------------
 		isTargetEst_msg.data = gt_m.ifCameraMeasure();
 
 		// -------------------------------------Publish-------------------------------------
