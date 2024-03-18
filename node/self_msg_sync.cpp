@@ -140,14 +140,26 @@ void Image_process::reArrangeBbox(state_estimation::Int32MultiArrayStamped bbox_
 double Image_process::getDepth(int u, int v)
 {
   float depth = 0;
+  int n = 0;
   cv_bridge::CvImagePtr cv_ptr = cv_bridge::toCvCopy(sync_img_depth, sensor_msgs::image_encodings::TYPE_32FC1);
-  depth += cv_ptr->image.at<float>(v, u);
-  depth += cv_ptr->image.at<float>(v-1, u);
-  depth += cv_ptr->image.at<float>(v-2, u);
-  depth += cv_ptr->image.at<float>(v-1, u+1);
-  depth += cv_ptr->image.at<float>(v-1, u-1);
-  depth /=5;
-
+  for(int i=-2; i< 1; i++)
+  {
+    for(int j=-1; j<2; j++)
+    {
+      if(cv_ptr->image.at<float>(v+i, u+j) < 6)
+      {
+        depth += cv_ptr->image.at<float>(v+i, u+j);
+        n++;
+      }
+        
+    }
+  }
+  depth /=n;
+  // depth += cv_ptr->image.at<float>(v, u);
+  // depth += cv_ptr->image.at<float>(v-1, u);
+  // depth += cv_ptr->image.at<float>(v-2, u);
+  // depth += cv_ptr->image.at<float>(v-1, u+1);
+  // depth += cv_ptr->image.at<float>(v-1, u-1);
   return static_cast<double>(depth);
 }
 

@@ -102,6 +102,33 @@ void HEIF_target::process()
 		Quadratic Programming
 =================================================================================================================================*/
 	
+bool HEIF_target::QP_init(int dataNum, int order)
+{
+	qp.dataNum = dataNum;
+	qp.functionOrder = order;
+	if(dataNum+1 < order)
+	{
+		std::cout << "QP init failed, dataNum is not sufficient\n";
+		return false;
+	}
+	qp.solver.clearSolver();
+	qp.A.resize(qp.dataNum*3, (qp.functionOrder+1)*3);
+	qp.Y.resize(qp.dataNum*3);
+	qp.lower_bound.resize(qp.dataNum*3);
+	qp.upper_bound.resize(qp.dataNum*3);
+	
+	qp.solver.data()->setNumberOfVariables((qp.functionOrder+1)*3); // for a, b, c, d
+    qp.solver.data()->setNumberOfConstraints(0);
+	qp.solver.settings()->setWarmStart(true);
+	qp.solver.settings()->setMaxIteration(1000);
+	qp.solver.settings()->setRelativeTolerance(1e-3);
+    qp.solver.settings()->setVerbosity(false); // Set to true if you want to see OSQP's output
+    
+	qp.solver.initSolver();
+	
+	return true;
+}
+
 void HEIF_target::QP_pushData(double time, Eigen::Vector3d position)
 {
 	if(abs(position(0)) > 0)
@@ -114,40 +141,13 @@ void HEIF_target::QP_pushData(double time, Eigen::Vector3d position)
 		t.pop_front();
 		positions.pop_front();
 	}
-	if(t.size() == qp.dataNum)
-	{ 
-		computeQP();
-	}
-}
-
-bool HEIF_target::QP_init(int dataNum, int order)
-{
-	qp.dataNum = dataNum;
-	qp.functionOrder = order;
-	if(dataNum+1 < order)
-	{
-		std::cout << "QP init failed\n";
-		return false;
-	}
-
-	qp.A.resize(qp.dataNum*3, (qp.functionOrder+1)*3);
-	qp.Y.resize(qp.dataNum*3);
-	qp.lower_bound.resize(qp.dataNum*3);
-	qp.upper_bound.resize(qp.dataNum*3);
-
-	qp.solver.clearSolver();
-	qp.solver.data()->setNumberOfVariables((qp.functionOrder+1)*3); // for a, b, c, d
-    qp.solver.data()->setNumberOfConstraints(0);
-	qp.solver.settings()->setWarmStart(true);
-	qp.solver.settings()->setMaxIteration(1000);
-	qp.solver.settings()->setRelativeTolerance(1e-3);
-    qp.solver.settings()->setVerbosity(false); // Set to true if you want to see OSQP's output
-    
-    qp.solver.initSolver();
 }
 
 bool HEIF_target::computeQP()
 {
+	if(t.size() != qp.dataNum)
+		return false;
+	
 	std::vector<double> t_(qp.dataNum);
 	for(int i=0; i<qp.dataNum; i++)
 		t_[i] = t[i] - t[0];
@@ -172,15 +172,16 @@ bool HEIF_target::computeQP()
 	Eigen::SparseMatrix<double> P_sparse = qp.P.sparseView();
 
 	qp.solver.data()->clearHessianMatrix();
-    qp.solver.data()->setHessianMatrix(P_sparse);
-    qp.solver.data()->setGradient(qp.q);
+    if(!qp.solver.data()->setHessianMatrix(P_sparse)) return false;
+    if(!qp.solver.data()->setGradient(qp.q)) return false;
 
 	if (qp.solver.solveProblem() == OsqpEigen::ErrorExitFlag::NoError) 
 	{
         qp.solution = qp.solver.getSolution();
-		qpAcc(0) = 2*qp.solution(2);
-		qpAcc(1) = 2*qp.solution(2+(qp.functionOrder+1));
-		qpAcc(2) = 2*qp.solution(2+(qp.functionOrder+1)*2);
+		qpAcc(0) = qp.solution(2);
+		qpAcc(1) = qp.solution(2+(qp.functionOrder+1));
+		qpAcc(2) = 0;
+		// qpAcc(2) = qp.solution(2+(qp.functionOrder+1)*2);
 		//std::cout << "QPsolution:\n" << qp.solution << "\n";
 		return true;
     }

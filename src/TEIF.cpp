@@ -18,7 +18,7 @@ target_EIF::~target_EIF(){}
 void target_EIF::setInitialState(Eigen::Vector3d Bbox)
 {
 	Eigen::Matrix3d K;
-	Eigen::Matrix3d R_w2c = R_b2c*Mav_eigen_self.R_w2b;
+	Eigen::Matrix3d R_w2c = cam.R_B2C()*Mav_eigen_self.R_w2b;
 	K << cam.fx(), 0, cam.cx(),
 		0, cam.fy(), cam.cy(),
 		0, 0, Bbox(2);
@@ -37,7 +37,7 @@ void target_EIF::setMeasurement(Eigen::Vector3d bBox){boundingBox = bBox;}
 void target_EIF::setSEIFpredData(EIF_data self_data)
 {
 	self = self_data;
-	self.X_hat.segment(0, 3) = self.X_hat.segment(0, 3) + Mav_eigen_self.R_w2b.inverse()*t_b2c;
+	self.X_hat.segment(0, 3) = self.X_hat.segment(0, 3) + Mav_eigen_self.R_w2b.inverse()*cam.t_B2C();
 }
 
 void target_EIF::computePredPairs(double delta_t)
@@ -66,7 +66,7 @@ void target_EIF::computeCorrPairs()
 	if(T.z != T.pre_z && T.z(2) >= 2.0 && T.z(2) <= 12.0)
 	{
 		Eigen::MatrixXd R_hat, R_bar;
-		Eigen::Matrix3d R_w2c = R_b2c*Mav_eigen_self.R_w2b;
+		Eigen::Matrix3d R_w2c = cam.R_B2C()*Mav_eigen_self.R_w2b;
 		Eigen::Vector3d r_qc_c = R_w2c*(T.X_hat.segment(0, 3) - self.X_hat.segment(0, 3));
 
 		X = r_qc_c(0)/r_qc_c(2);

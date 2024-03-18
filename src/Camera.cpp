@@ -8,6 +8,11 @@ Camera::Camera()
     cy_ = 240.5;
     lx_ = 640;
     ly_ = 480;
+
+	t_b2c<< 0.1, 0, 0; 
+	R_b2c<< 0, -1, 0,
+			0, 0, -1,
+			1, 0, 0;
 }
 
 Camera::Camera(double f_x, double f_y, double c_x, double c_y)
@@ -36,3 +41,6 @@ double Camera::cx(){return cx_;}
 double Camera::cy(){return cy_;}
 double Camera::lx(){return lx_;}
 double Camera::ly(){return ly_;}
+
+Eigen::Vector3d Camera::t_B2C(){return t_b2c;}
+Eigen::Matrix3d Camera::R_B2C(){return R_b2c;}

@@ -115,7 +115,7 @@ find_package(OsqpEigen REQUIRED)
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
   INCLUDE_DIRS include
-  LIBRARIES Mav CommonFuncs
+  LIBRARIES Mav Camera
 #  DEPENDS system_lib
 CATKIN_DEPENDS message_runtime cv_bridge roscpp rospy std_msgs geometry_msgs pcl_conversions
 )

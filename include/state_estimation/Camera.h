@@ -1,5 +1,7 @@
 #ifndef CAMERA_H
 #define CAMERA_H
+#pragma once
+#include <Eigen/Dense>
 
 class Camera
 {
@@ -10,6 +12,9 @@ private:
     double cy_;
     double lx_;
     double ly_;
+    
+    Eigen::Vector3d t_b2c;
+    Eigen::Matrix3d R_b2c;
 public:
     
     Camera();
@@ -22,6 +27,9 @@ public:
     double cy();
     double lx();
     double ly();
+
+    Eigen::Vector3d t_B2C();
+    Eigen::Matrix3d R_B2C();
 };
 
 #endif

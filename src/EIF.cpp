@@ -1,15 +1,6 @@
 #include "EIF.h"
 
-EIF::EIF()
-{
-	t_b2c.resize(3);
-	t_b2c<< 0.1, 0, 0; 
-
-	R_b2c.setZero(3, 3);
-	R_b2c<< 0, -1, 0,
-			0, 0, -1,
-			1, 0, 0;
-}
+EIF::EIF(){}
 
 EIF::~EIF(){}
 

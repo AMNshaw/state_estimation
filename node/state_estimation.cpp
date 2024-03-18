@@ -176,9 +176,13 @@ int main(int argc, char **argv)
 		if(gt_m.ifCameraMeasure())
 		{
 			teif.setFusionPairs(theif.getFusedCov(), theif.getFusedState(), ros::Time::now().toSec());
-			theif.QP_init(20, 2);
-			theif.QP_pushData(ros::Time::now().toSec(), theif.getFusedState().segment(0, 3));
-			teif.setEstAcc(theif.getQpAcc());
+			
+			// if(theif.QP_init(15, 2))
+			// {
+			// 	theif.QP_pushData(ros::Time::now().toSec(), theif.getFusedState().segment(0, 3));
+			// 	if(theif.computeQP());
+			// 		teif.setEstAcc(theif.getQpAcc());
+			// }
 		}
 		std::cout << "TEIF:\n";
 		eif_ros.tgtState_Plot_pub.publish(compare(gt_m.getGTs_eigen()[0], theif.getFusedState()));

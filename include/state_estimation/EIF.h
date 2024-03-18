@@ -34,8 +34,6 @@ protected:
 
     Eigen::MatrixXd Q; //noise matrix
     Eigen::MatrixXd R; //noise matrix
-    Eigen::VectorXd t_b2c;
-    Eigen::MatrixXd R_b2c;
 
     Eigen::MatrixXd fusedOmega;
     Eigen::VectorXd fusedXi;

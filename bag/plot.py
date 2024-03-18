@@ -222,6 +222,7 @@ folder = '/home/ncrl/gazebo_sim_ws/src/state_estimation/bag/'
 file1 = folder + 'QP.bag'
 file2 = folder + 'noQP.bag'
 bag1 = rosbag.Bag(file1)
+bag2 = rosbag.Bag(file2)
 topic = '/iris_1/THEIF/Plot'
 plotFromTwoBags(file1, file2, topic, 'QP prediction', 'no QP prediction')
-#plotFromBag(bag1, 'THEIF, Only one neigbor robots has absolute position rate 5hz')
+plotFromBag(bag2, 'THEIF, Only one neigbor robots has absolute position rate 5hz')
