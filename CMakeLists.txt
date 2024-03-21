@@ -148,7 +148,7 @@ target_link_libraries(Camera
   ${catkin_LIBRARIES})
 
 add_library(Mav
-   src/Mav.cpp
+   src/ROSmsg_related/Mav.cpp
 )
 target_include_directories(Mav PRIVATE
   include/${PROJECT_NAME}/ )
@@ -156,7 +156,7 @@ target_link_libraries(Mav
   ${catkin_LIBRARIES})
 
 add_library(GT_measurement_ros
-  src/GT_measurement_ros.cpp
+  src/ROSmsg_related/GT_measurement_ros.cpp
 )
 target_include_directories(GT_measurement_ros PRIVATE
  include/${PROJECT_NAME}/ )
@@ -164,7 +164,7 @@ target_link_libraries(GT_measurement_ros
  ${catkin_LIBRARIES})
 
 add_library(EIFpairs_ros
- src/EIFpairs_ros.cpp
+ src/ROSmsg_related/EIFpairs_ros.cpp
 )
 target_include_directories(EIFpairs_ros PRIVATE
 include/${PROJECT_NAME}/ )
@@ -172,14 +172,14 @@ target_link_libraries(EIFpairs_ros
 ${catkin_LIBRARIES})
 
 add_library(EIF
-   src/EIF.cpp
-   src/TEIF.cpp
-   src/SEIF.cpp
-   src/SEIF_pose.cpp
-   src/SEIF_neighbors.cpp
-   src/HEIF.cpp
-   src/HEIF_self.cpp
-   src/HEIF_target.cpp
+   src/EIF_related/EIF.cpp
+   src/EIF_related/TEIF.cpp
+   src/EIF_related/SEIF.cpp
+   src/EIF_related/SEIF_pose.cpp
+   src/EIF_related/SEIF_neighbors.cpp
+   src/EIF_related/HEIF.cpp
+   src/EIF_related/HEIF_self.cpp
+   src/EIF_related/HEIF_target.cpp
 )
 target_link_libraries(EIF
   ${catkin_LIBRARIES} 
@@ -188,7 +188,7 @@ target_link_libraries(EIF
   Camera
   )
 target_include_directories(EIF PRIVATE
-  include/${PROJECT_NAME}/)
+  include/${PROJECT_NAME})
 
 # state_estimation
 add_executable(state_estimation 

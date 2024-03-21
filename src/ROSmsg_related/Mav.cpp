@@ -15,7 +15,7 @@ MAV::MAV(ros::NodeHandle &nh_, string vehicle, int ID)
     roll = pitch = yaw = 0;
     topic_count = 0;
 
-    string prefix = string("/") + vehicle + string("_") + to_string(ID);
+    string prefix = string("/") + vehicle + to_string(ID);
     if(id != 0)
     {
         pose_sub = nh_.subscribe<geometry_msgs::PoseStamped>(prefix + string("/mavros/vision_pose/pose"), 10, &MAV::pose_cb, this);

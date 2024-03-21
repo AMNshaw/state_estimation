@@ -66,13 +66,13 @@ Image_process::Image_process(ros::NodeHandle &nh, string group_ns, int ID)
   vehicle = group_ns;
   set_topic(group_ns, ID);
 
-  sync_yolo_pub = nh.advertise<sensor_msgs::Image>(yolo_output_topic, 1);
-  sync_depth_pub = nh.advertise<sensor_msgs::Image>(depth_output_topic, 1);
-  sync_bbox_pub = nh.advertise<std_msgs::Float64MultiArray>(bbox_output_topic, 1);
+  sync_yolo_pub = nh.advertise<sensor_msgs::Image>("synchronizer/yolov7/visualization", 1);
+  sync_depth_pub = nh.advertise<sensor_msgs::Image>("synchronizer/camera/depth/image_raw", 1);
+  sync_bbox_pub = nh.advertise<std_msgs::Float64MultiArray>("synchronizer/yolov7/boundingBox", 1);
 
-  message_filters::Subscriber<sensor_msgs::Image> img_yolo_sub(nh, yolo_input_topic, 1);
-  message_filters::Subscriber<sensor_msgs::Image> img_depth_sub(nh, depth_input_topic, 1);
-  message_filters::Subscriber<state_estimation::Int32MultiArrayStamped> bbox_msg_sub(nh, bbox_input_topic, 1);
+  message_filters::Subscriber<sensor_msgs::Image> img_yolo_sub(nh, "yolov7/yolov7/visualization", 1);
+  message_filters::Subscriber<sensor_msgs::Image> img_depth_sub(nh, "camera/depth/image_raw", 1);
+  message_filters::Subscriber<state_estimation::Int32MultiArrayStamped> bbox_msg_sub(nh, "yolov7/yolov7/boundingBox", 1);
 
 
   typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image,
@@ -155,18 +155,13 @@ double Image_process::getDepth(int u, int v)
     }
   }
   depth /=n;
-  // depth += cv_ptr->image.at<float>(v, u);
-  // depth += cv_ptr->image.at<float>(v-1, u);
-  // depth += cv_ptr->image.at<float>(v-2, u);
-  // depth += cv_ptr->image.at<float>(v-1, u+1);
-  // depth += cv_ptr->image.at<float>(v-1, u-1);
   return static_cast<double>(depth);
 }
 
 void Image_process::set_topic(string group_ns, int ID)
 {
 
-  string prefix = string("/")+ group_ns + string("_") + to_string(ID);
+  string prefix = string("/")+ group_ns + to_string(ID);
 
   yolo_input_topic = prefix + string("/yolov7/yolov7/visualization");
   depth_input_topic = prefix + string("/camera/depth/image_raw");

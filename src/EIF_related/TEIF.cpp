@@ -45,7 +45,6 @@ void target_EIF::computePredPairs(double delta_t)
 	double dt = static_cast<double>(delta_t);
 	
 	///////////////////////////// X, F ////////////////////////////////
-	std::cout << "u:\n" << u << "\n";
 
 	T.X_hat.segment(0, 3) = T.X.segment(0, 3) + T.X.segment(3, 3)*dt + 1/2*u*dt*dt;
 	T.X_hat.segment(3, 3) = T.X.segment(3, 3) + u*dt;

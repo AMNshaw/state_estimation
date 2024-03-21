@@ -49,7 +49,7 @@ EIFpairs_ros::~EIFpairs_ros()
 
 void EIFpairs_ros::set_topic(std::string vehicle, int id)
 {
-	string prefix = std::string("/") + vehicle + std::string("_") + std::to_string(id);
+	string prefix = std::string("/") + vehicle + std::to_string(id);
 	self2TgtEIFpairs_pub_topic = prefix + std::string("/TEIF/fusionPairs");
 	tgtStatePlot_topic = prefix + std::string("/THEIF/Plot");
 	selfStatePlot_topic = prefix + std::string("/SHEIF/Plot");
@@ -60,9 +60,9 @@ void EIFpairs_ros::set_topic(std::string vehicle, int id)
 	for(int i=0; i<mavNum; i++)
 		if(i != self_index)
 		{
-			neighborsEIFpairs_sub_topic[i] = std::string("/") + vehicle + std::string("_") + std::to_string(i+1)
+			neighborsEIFpairs_sub_topic[i] = std::string("/") + vehicle + std::to_string(i+1)
 			+ std::string("/SEIF_pred/fusionPairs");
-			rbs2TgtEIFpairs_sub_topic[i] = std::string("/") + vehicle + std::string("_") + std::to_string(i+1)
+			rbs2TgtEIFpairs_sub_topic[i] = std::string("/") + vehicle + std::to_string(i+1)
 			+ std::string("/TEIF") + std::string("/fusionPairs");
 		}
 }

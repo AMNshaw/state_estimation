@@ -195,7 +195,6 @@ void GT_measurement::bbox_check()
 		}
 	}
 	bbox_eigen_past = bbox_eigen;
-	std::cout << "no_bbox_count: " << no_bbox_count << "\ncheckCount: "<< checkCount << "\nbbox_count: " <<bbox_count<<"\n";
 }
 
 Eigen::Vector3d GT_measurement::getBboxEigen(){return bbox_eigen;}
