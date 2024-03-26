@@ -17,6 +17,7 @@
 #include <mavros_msgs/State.h>
 #include <tf/tf.h>
 #include <Eigen/Dense>
+#include <Camera.h>
 
 using namespace std;
 
@@ -39,6 +40,8 @@ private:
     ros::Subscriber imu_sub;
     ros::Subscriber mav_state_sub;
 
+    Camera cam;
+
 public:
     MAV();
     MAV(ros::NodeHandle &nh);
@@ -56,6 +59,9 @@ public:
     void setPose(geometry_msgs::Pose Pose);
     void setTwist(geometry_msgs::Twist Twist);
     void setOrientation(geometry_msgs::Quaternion q);
+
+    void setCamera(Camera cam);
+    Camera getCamera();
 
     string topic;
     int id;

@@ -2,6 +2,8 @@
 #define CAMERA_H
 #pragma once
 #include <Eigen/Dense>
+#include "ros/ros.h"
+#include <sensor_msgs/JointState.h>
 
 class Camera
 {
@@ -15,10 +17,17 @@ private:
     
     Eigen::Vector3d t_b2c;
     Eigen::Matrix3d R_b2c;
+
+    ros::Subscriber jointState_sub;
+    Eigen::Matrix3d R_b2m;
+    Eigen::Matrix3d R_m2p;
+    Eigen::Matrix3d R_p2t;
+    Eigen::Matrix3d R_t2c;
+
 public:
     
     Camera();
-    Camera(double f_x, double f_y, double c_x, double c_y);
+    Camera(ros::NodeHandle &nh_, bool gimbal);
     ~Camera();
     void setParameters(double f_x, double f_y, double c_x, double c_y);
     double fx();

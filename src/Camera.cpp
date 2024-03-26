@@ -15,14 +15,9 @@ Camera::Camera()
 			1, 0, 0;
 }
 
-Camera::Camera(double f_x, double f_y, double c_x, double c_y)
+Camera::Camera(ros::NodeHandle &nh_, bool gimbal)
 {
-    fx_ = f_x;
-    fy_ = f_y;
-    cx_ = c_x;
-    cy_ = c_y;
-    lx_ = 640;
-    ly_ = 480;
+
 }
 
 Camera::~Camera(){}

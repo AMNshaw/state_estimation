@@ -69,6 +69,7 @@ geometry_msgs::PoseStamped MAV::getPose(){return pose_current;}
 geometry_msgs::TwistStamped MAV::getVel(){return vel_current;}
 geometry_msgs::Vector3 MAV::getAcc(){return acc_current;}
 mavros_msgs::State MAV::getState(){return state;}
+Camera MAV::getCamera(){return cam;}
 
 void MAV::setPose(geometry_msgs::Pose Pose)
 {
@@ -84,6 +85,11 @@ void MAV::setTwist(geometry_msgs::Twist Twist)
 void MAV::setOrientation(geometry_msgs::Quaternion q)
 {
     pose_current.pose.orientation = q;
+}
+
+void MAV::setCamera(Camera camera)
+{
+    cam = camera;
 }
 
 /*=================================================================================================================================
@@ -118,6 +124,7 @@ MAV_eigen mavMsg2Eigen(MAV Mav)
 	Mav_eigen.q.y() = Mav.getPose().pose.orientation.y;
 	Mav_eigen.q.z() = Mav.getPose().pose.orientation.z;
 
+    Mav_eigen.r_c = Mav_eigen.r + Mav_eigen.R_w2b.inverse()*Mav.getCamera().t_B2C();
 	return Mav_eigen;
 }
 
