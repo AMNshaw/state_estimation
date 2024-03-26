@@ -63,7 +63,7 @@ int main(int argc, char **argv)
 	geometry_msgs::PoseStamped fusedPoseMsg;
 	geometry_msgs::TwistStamped fusedTwistMsg;
 
-	MAV mav(nh, vehicle, ID);
+	MAV mav(nh);
 	EIFpairs_ros eif_ros(nh, vehicle, ID, mavNum);
 	GT_measurement gt_m(nh, ID, 4);
 	gt_m.setRosRate(rosRate);

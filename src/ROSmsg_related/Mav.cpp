@@ -5,6 +5,11 @@ MAV::MAV(){}
 MAV::MAV(ros::NodeHandle &nh_)
 {
     nh = nh_;
+
+    pose_sub = nh_.subscribe<geometry_msgs::PoseStamped>("mavros/vision_pose/pose", 10, &MAV::pose_cb, this);
+    vel_sub = nh_.subscribe<geometry_msgs::TwistStamped>("mavros/vision_pose/twist", 10, &MAV::vel_cb, this);
+    imu_sub = nh_.subscribe<sensor_msgs::Imu>("mavros/imu/data", 10, &MAV::imu_cb, this);
+    mav_state_sub = nh_.subscribe<mavros_msgs::State>("mavros/state", 10, &MAV::mav_state_cb, this);
 }
 
 MAV::MAV(ros::NodeHandle &nh_, string vehicle, int ID)
@@ -15,7 +20,7 @@ MAV::MAV(ros::NodeHandle &nh_, string vehicle, int ID)
     roll = pitch = yaw = 0;
     topic_count = 0;
 
-    string prefix = string("/") + vehicle + to_string(ID);
+    string prefix = string("/") + vehicle + string("_") + to_string(ID);
     if(id != 0)
     {
         pose_sub = nh_.subscribe<geometry_msgs::PoseStamped>(prefix + string("/mavros/vision_pose/pose"), 10, &MAV::pose_cb, this);
