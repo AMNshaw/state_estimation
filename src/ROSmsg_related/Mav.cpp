@@ -123,7 +123,7 @@ MAV_eigen mavMsg2Eigen(MAV Mav)
 	Mav_eigen.q.x() = Mav.getPose().pose.orientation.x;
 	Mav_eigen.q.y() = Mav.getPose().pose.orientation.y;
 	Mav_eigen.q.z() = Mav.getPose().pose.orientation.z;
-
+    
     Mav_eigen.r_c = Mav_eigen.r + Mav_eigen.R_w2b.inverse()*Mav.getCamera().t_B2C();
 	return Mav_eigen;
 }

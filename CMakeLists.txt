@@ -153,6 +153,7 @@ add_library(Mav
 target_include_directories(Mav PRIVATE
   include/${PROJECT_NAME}/ )
 target_link_libraries(Mav
+  Camera
   ${catkin_LIBRARIES})
 
 add_library(GT_measurement_ros

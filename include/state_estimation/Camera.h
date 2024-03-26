@@ -18,11 +18,18 @@ private:
     Eigen::Vector3d t_b2c;
     Eigen::Matrix3d R_b2c;
 
+    ros::NodeHandle nh;
     ros::Subscriber jointState_sub;
+    void jointState_cb(const sensor_msgs::JointState::ConstPtr& msg);
+
     Eigen::Matrix3d R_b2m;
     Eigen::Matrix3d R_m2p;
     Eigen::Matrix3d R_p2t;
     Eigen::Matrix3d R_t2c;
+
+    double roll;
+    double pitch;
+    double yaw;
 
 public:
     
@@ -36,6 +43,9 @@ public:
     double cy();
     double lx();
     double ly();
+    double Roll();
+    double Pitch();
+    double Yaw();
 
     Eigen::Vector3d t_B2C();
     Eigen::Matrix3d R_B2C();
