@@ -77,7 +77,6 @@ struct MAV_eigen
     Eigen::Vector3d r_c;
 	Eigen::Vector3d v;
 	Eigen::Vector3d a_imu;
-    Eigen::Vector3d a_world;
 	Eigen::Vector3d omega_c;
 	Eigen::Matrix3d R_w2b;
     Eigen::Quaterniond q;

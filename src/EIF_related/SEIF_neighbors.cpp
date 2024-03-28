@@ -40,7 +40,7 @@ EIF_data Self_rel_EIF::computeCorrPair(Eigen::Vector4d LM, EIF_data& neighbor_pr
     if(checkPreMeasurement(LM))
     {
         Eigen::MatrixXd R_hat;
-        Eigen::Matrix3d R_W2B_i = Mav_eigen_self.R_w2b;
+        Eigen::Matrix3d R_W2B_i = Mav_eigen_self.R_w2b.inverse();
         Eigen::Vector3d r_B_hat = R_W2B_i*(neighbor_pred.X_hat.segment(0, 3) - self.X_hat.segment(0, 3));
         
         double D = sqrt(pow(r_B_hat(0), 2) + pow(r_B_hat(1), 2) + pow(r_B_hat(2), 2));

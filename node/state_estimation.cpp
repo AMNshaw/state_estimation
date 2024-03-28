@@ -28,6 +28,7 @@
 #include "SEIF_neighbors.h"
 #include "GT_measurement_ros.h"
 #include "EIFpairs_ros.h"
+#include "Camera.h"
 
 using namespace std;
 
@@ -38,6 +39,8 @@ int main(int argc, char **argv)
 
 	ros::Publisher mavros_fusionPose_pub = nh.advertise<geometry_msgs::PoseStamped>("mavros/vision_pose/pose", 10);
 	ros::Publisher mavros_fusionTwist_pub = nh.advertise<geometry_msgs::TwistStamped>("mavros/vision_pose/twist", 10);
+	ros::Publisher target_fusionPose_pub = nh.advertise<geometry_msgs::PoseStamped>("THEIF/pose", 10);
+	ros::Publisher target_fusionTwist_pub = nh.advertise<geometry_msgs::TwistStamped>("THEIF/twist", 10);
 	ros::Publisher isTargetEst_pub = nh.advertise<std_msgs::Bool>("THEIF/isTargetEst", 10);
 
     std::string vehicle;
@@ -60,11 +63,14 @@ int main(int argc, char **argv)
 	
 	ros::Rate rate(rosRate);
 
-	geometry_msgs::PoseStamped fusedPoseMsg;
-	geometry_msgs::TwistStamped fusedTwistMsg;
+	geometry_msgs::PoseStamped self_fusedPoseMsg;
+	geometry_msgs::TwistStamped self_fusedTwistMsg;
+	geometry_msgs::PoseStamped target_fusedPoseMsg;
+	geometry_msgs::TwistStamped target_fusedTwistMsg;
 
 	MAV mav(nh);
 	EIFpairs_ros eif_ros(nh, vehicle, ID, mavNum);
+	Camera cam(nh, true);
 	GT_measurement gt_m(nh, ID, 4);
 	gt_m.setRosRate(rosRate);
 	MAV_eigen mav_eigen;
@@ -92,6 +98,7 @@ int main(int argc, char **argv)
 	target_EIF teif(6);
 	HEIF_self sheif(6);
 	HEIF_target theif(6);
+
 	printf("\n[%s_%i EIF]: EIF constructed\n\n", vehicle.c_str(), ID);
 
 	SEIF_pose.setCurrState(gt_m.getGTs_eigen()[ID]);
@@ -134,6 +141,7 @@ int main(int argc, char **argv)
 		{
 			if(!teif.filter_init)
 				teif.setInitialState(gt_m.getBboxEigen());
+			teif.setCamera(cam);
 			teif.setMavSelfData(mav_eigen); 
 			teif.setMeasurement(gt_m.getBboxEigen());
 			teif.setSEIFpredData(SEIF_pose.getEIFData());
@@ -163,8 +171,8 @@ int main(int argc, char **argv)
 		sheif.process();
 		SEIF_pose.setFusionPairs(sheif.getFusedCov(), sheif.getFusedState());
 		
-		std::cout << "SEIF:\n";
-		eif_ros.selfState_Plot_pub.publish(compare(gt_m.getGTs_eigen()[ID], sheif.getFusedState()));
+		// std::cout << "SEIF:\n";
+		// eif_ros.selfState_Plot_pub.publish(compare(gt_m.getGTs_eigen()[ID], sheif.getFusedState()));
 		
 		// -------------------------------------Target-------------------------------------
 		std::vector<EIF_data> allTgtEIFData;
@@ -184,8 +192,8 @@ int main(int argc, char **argv)
 			// 		teif.setEstAcc(theif.getQpAcc());
 			// }
 		}
-		// std::cout << "TEIF:\n";
-		// eif_ros.tgtState_Plot_pub.publish(compare(gt_m.getGTs_eigen()[0], theif.getFusedState()));
+		std::cout << "TEIF:\n";
+		(compare(gt_m.getGTs_eigen()[0], theif.getFusedState()));
 		
 		
 		/*=================================================================================================================================
@@ -193,31 +201,44 @@ int main(int argc, char **argv)
 		=================================================================================================================================*/
 		
 		// -------------------------------------Position-------------------------------------
-		fusedPoseMsg.header.frame_id = "/world";
-		fusedPoseMsg.header.stamp = ros::Time::now();
-		fusedPoseMsg.pose.position.x = sheif.getFusedState()(0);
-		fusedPoseMsg.pose.position.y = sheif.getFusedState()(1);
-		fusedPoseMsg.pose.position.z = sheif.getFusedState()(2);
-		fusedPoseMsg.pose.orientation.w = mav_eigen.q.w();
-		fusedPoseMsg.pose.orientation.x = mav_eigen.q.x();
-		fusedPoseMsg.pose.orientation.y = mav_eigen.q.y();
-		fusedPoseMsg.pose.orientation.z = mav_eigen.q.z();
+		self_fusedPoseMsg.header.frame_id = "/world";
+		self_fusedPoseMsg.header.stamp = ros::Time::now();
+		self_fusedPoseMsg.pose.position.x = sheif.getFusedState()(0);
+		self_fusedPoseMsg.pose.position.y = sheif.getFusedState()(1);
+		self_fusedPoseMsg.pose.position.z = sheif.getFusedState()(2);
+		self_fusedPoseMsg.pose.orientation.w = mav_eigen.q.w();
+		self_fusedPoseMsg.pose.orientation.x = mav_eigen.q.x();
+		self_fusedPoseMsg.pose.orientation.y = mav_eigen.q.y();
+		self_fusedPoseMsg.pose.orientation.z = mav_eigen.q.z();
+
+		target_fusedPoseMsg.header.frame_id = "/world";
+		target_fusedPoseMsg.header.stamp = ros::Time::now();
+		target_fusedPoseMsg.pose.position.x = theif.getFusedState()(0);
+		target_fusedPoseMsg.pose.position.y = theif.getFusedState()(1);
+		target_fusedPoseMsg.pose.position.z = theif.getFusedState()(2);
 
 		// -------------------------------------Velocity-------------------------------------
-		fusedTwistMsg.header.stamp = ros::Time::now();
-		fusedTwistMsg.twist.linear.x = sheif.getFusedState()(3);
-		fusedTwistMsg.twist.linear.y = sheif.getFusedState()(4);
-		fusedTwistMsg.twist.linear.z = sheif.getFusedState()(5);
-		fusedTwistMsg.twist.angular.x = mav_eigen.omega_c(0);
-		fusedTwistMsg.twist.angular.y = mav_eigen.omega_c(1);
-		fusedTwistMsg.twist.angular.z = mav_eigen.omega_c(2);
+		self_fusedTwistMsg.header.stamp = ros::Time::now();
+		self_fusedTwistMsg.twist.linear.x = sheif.getFusedState()(3);
+		self_fusedTwistMsg.twist.linear.y = sheif.getFusedState()(4);
+		self_fusedTwistMsg.twist.linear.z = sheif.getFusedState()(5);
+		self_fusedTwistMsg.twist.angular.x = mav_eigen.omega_c(0);
+		self_fusedTwistMsg.twist.angular.y = mav_eigen.omega_c(1);
+		self_fusedTwistMsg.twist.angular.z = mav_eigen.omega_c(2);
+
+		target_fusedTwistMsg.header.stamp = ros::Time::now();
+		target_fusedTwistMsg.twist.linear.x = theif.getFusedState()(3);
+		target_fusedTwistMsg.twist.linear.y = theif.getFusedState()(4);
+		target_fusedTwistMsg.twist.linear.z = theif.getFusedState()(5);
 
 		// -------------------------------------Camera detect?-------------------------------------
 		isTargetEst_msg.data = gt_m.ifCameraMeasure();
 
 		// -------------------------------------Publish-------------------------------------
-		mavros_fusionPose_pub.publish(fusedPoseMsg);
-		mavros_fusionTwist_pub.publish(fusedTwistMsg);
+		mavros_fusionPose_pub.publish(self_fusedPoseMsg);
+		mavros_fusionTwist_pub.publish(self_fusedTwistMsg);
+		target_fusionPose_pub.publish(target_fusedPoseMsg);
+		target_fusionTwist_pub.publish(target_fusedTwistMsg);
 		isTargetEst_pub.publish(isTargetEst_msg);
 
 		/*=================================================================================================================================

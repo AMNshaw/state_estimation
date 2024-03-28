@@ -20,7 +20,7 @@ void Self_pose_EIF::setMeasurement(Eigen::Vector3d z)
 void Self_pose_EIF::computePredPairs(double delta_t)
 {
     double dt = static_cast<double>(delta_t);
-    Eigen::Vector3d world_a = Mav_eigen_self.R_w2b.inverse()*Mav_eigen_self.a_imu;
+    Eigen::Vector3d world_a = Mav_eigen_self.R_w2b*Mav_eigen_self.a_imu; // R_w2b = R_b2w.inverse()
     world_a(2) += -9.80665;
 
     self.F.setIdentity();

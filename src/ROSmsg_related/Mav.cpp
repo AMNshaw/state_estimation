@@ -29,8 +29,10 @@ MAV::MAV(ros::NodeHandle &nh_, string vehicle, int ID)
     }
     else
     {
-        pose_sub = nh_.subscribe<geometry_msgs::PoseStamped>("/leader/formation/pose", 10, &MAV::pose_cb, this);
-        vel_sub = nh_.subscribe<geometry_msgs::TwistStamped>("/leader/formation/velocity", 10, &MAV::vel_cb, this);
+        // pose_sub = nh_.subscribe<geometry_msgs::PoseStamped>("/leader/formation/pose", 10, &MAV::pose_cb, this);
+        // vel_sub = nh_.subscribe<geometry_msgs::TwistStamped>("/leader/formation/velocity", 10, &MAV::vel_cb, this);
+        pose_sub = nh_.subscribe<geometry_msgs::PoseStamped>("/target/mavros/local_position/pose", 10, &MAV::pose_cb, this);
+        vel_sub = nh_.subscribe<geometry_msgs::TwistStamped>("/target/mavros/local_position/velocity_local", 10, &MAV::vel_cb, this);
     }
     mav_state_sub = nh_.subscribe<mavros_msgs::State>("mavros/state", 10, &MAV::mav_state_cb, this);
 }
@@ -118,7 +120,7 @@ MAV_eigen mavMsg2Eigen(MAV Mav)
 		Mav.getPose().pose.orientation.x,
 		Mav.getPose().pose.orientation.y,
 		Mav.getPose().pose.orientation.z
-	).toRotationMatrix().inverse();
+	).toRotationMatrix();
 	Mav_eigen.q.w() = Mav.getPose().pose.orientation.w;
 	Mav_eigen.q.x() = Mav.getPose().pose.orientation.x;
 	Mav_eigen.q.y() = Mav.getPose().pose.orientation.y;

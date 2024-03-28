@@ -25,9 +25,9 @@ Camera::Camera(ros::NodeHandle &nh_, bool gimbal)
         cx_ = 320.5;
         cy_ = 240.5;
 
-        t_b2c << 0, 0, -0.162;
-        R_b2m << 0, 1, 0,
-                -1, 0, 0,
+        t_b2c << 0.041, 0, -0.162;
+        R_b2m << 1, 0, 0,
+                0, -1, 0,
                 0, 0, -1;
         R_t2c << 0, 1, 0,
                 0, 0, 1,
@@ -41,13 +41,11 @@ Camera::Camera(ros::NodeHandle &nh_, bool gimbal)
         cy_ = 240.5;
         
         t_b2c<< 0.1, 0, 0; 
-        R_b2c<< 0, -1, 0,
-                0, 0, -1,
+        R_b2c<< 0, 1, 0,
+                0, 0, 1,
                 1, 0, 0;
     }
 
-   
-    
 }
 
 Camera::~Camera(){}
@@ -65,7 +63,8 @@ void Camera::jointState_cb(const sensor_msgs::JointState::ConstPtr& msg)
             0, 1, 0,
             sin(pitch), 0, cos(pitch);
 
-    R_b2c = R_b2m*R_m2p*R_p2t*R_t2c;
+    // R_b2c = R_t2c*R_p2t*R_m2p*R_b2m;
+    R_b2c = R_t2c*R_p2t*R_m2p*R_b2m;
 }
 
 

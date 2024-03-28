@@ -18,12 +18,10 @@ target_EIF::~target_EIF(){}
 void target_EIF::setInitialState(Eigen::Vector3d Bbox)
 {
 	Eigen::Matrix3d K;
-	Eigen::Matrix3d R_w2c = cam.R_B2C()*Mav_eigen_self.R_w2b;
 	K << cam.fx(), 0, cam.cx(),
 		0, cam.fy(), cam.cy(),
 		0, 0, Bbox(2);
 	
-	//T.X.segment(0, 3) = R_w2c.inverse()*K.inverse()*Bbox;
 	T.X.segment(0, 3) << 0, 0, 5;
 	T.X.segment(3, 3) << 0, 0, 0;
 	std::cout << "Init:\n" << T.X.segment(0, 3) << std::endl;
@@ -37,7 +35,7 @@ void target_EIF::setMeasurement(Eigen::Vector3d bBox){boundingBox = bBox;}
 void target_EIF::setSEIFpredData(EIF_data self_data)
 {
 	self = self_data;
-	self.X_hat.segment(0, 3) = self.X_hat.segment(0, 3) + Mav_eigen_self.R_w2b.inverse()*cam.t_B2C();
+	self.X_hat.segment(0, 3) = self.X_hat.segment(0, 3) + Mav_eigen_self.R_w2b.inverse()*cam.t_B2C(); ///???????????????????
 }
 
 void target_EIF::computePredPairs(double delta_t)
@@ -65,8 +63,8 @@ void target_EIF::computeCorrPairs()
 	if(T.z != T.pre_z && T.z(2) >= 2.0 && T.z(2) <= 12.0)
 	{
 		Eigen::MatrixXd R_hat, R_bar;
-		Eigen::Matrix3d R_w2c = cam.R_B2C()*Mav_eigen_self.R_w2b;
-		Eigen::Vector3d r_qc_c = R_w2c*(T.X_hat.segment(0, 3) - self.X_hat.segment(0, 3));
+		Eigen::Matrix3d R_w2c_i = cam.R_B2C()*Mav_eigen_self.R_w2b.inverse(); ///////////////// rotation problem
+		Eigen::Vector3d r_qc_c = R_w2c_i*(T.X_hat.segment(0, 3) - self.X_hat.segment(0, 3)); 
 
 		X = r_qc_c(0)/r_qc_c(2);
 		Y = r_qc_c(1)/r_qc_c(2);
@@ -78,15 +76,15 @@ void target_EIF::computeCorrPairs()
 		self.z = T.z;
 		self.h = T.h;
 
-		T.H(0, 0) = (cam.fx()/Z)*(R_w2c(0, 0) - R_w2c(2, 0)*X);
-		T.H(0, 1) = (cam.fx()/Z)*(R_w2c(0, 1) - R_w2c(2, 1)*X);
-		T.H(0, 2) = (cam.fx()/Z)*(R_w2c(0, 2) - R_w2c(2, 2)*X);
-		T.H(1, 0) = (cam.fy()/Z)*(R_w2c(1, 0) - R_w2c(2, 0)*Y);
-		T.H(1, 1) = (cam.fy()/Z)*(R_w2c(1, 1) - R_w2c(2, 1)*Y);
-		T.H(1, 2) = (cam.fy()/Z)*(R_w2c(1, 2) - R_w2c(2, 2)*Y);
-		T.H(2, 0) = R_w2c(2, 0);
-		T.H(2, 1) = R_w2c(2, 1);
-		T.H(2, 2) = R_w2c(2, 2);
+		T.H(0, 0) = (cam.fx()/Z)*(R_w2c_i(0, 0) - R_w2c_i(2, 0)*X);
+		T.H(0, 1) = (cam.fx()/Z)*(R_w2c_i(0, 1) - R_w2c_i(2, 1)*X);
+		T.H(0, 2) = (cam.fx()/Z)*(R_w2c_i(0, 2) - R_w2c_i(2, 2)*X);
+		T.H(1, 0) = (cam.fy()/Z)*(R_w2c_i(1, 0) - R_w2c_i(2, 0)*Y);
+		T.H(1, 1) = (cam.fy()/Z)*(R_w2c_i(1, 1) - R_w2c_i(2, 1)*Y);
+		T.H(1, 2) = (cam.fy()/Z)*(R_w2c_i(1, 2) - R_w2c_i(2, 2)*Y);
+		T.H(2, 0) = R_w2c_i(2, 0);
+		T.H(2, 1) = R_w2c_i(2, 1);
+		T.H(2, 2) = R_w2c_i(2, 2);
 
 		self.H = -T.H;
 
@@ -115,4 +113,9 @@ EIF_data target_EIF::getSelfData(){return self;}
 void target_EIF::setEstAcc(Eigen::Vector3d acc)
 {
 	u = acc;
+}
+
+void target_EIF::setCamera(Camera camera)
+{
+	cam = camera;
 }

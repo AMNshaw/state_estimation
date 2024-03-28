@@ -32,6 +32,7 @@ public:
     void setSEIFpredData(EIF_data self);
     void setFusionPairs(Eigen::MatrixXd fusedP, Eigen::VectorXd fusedX, double time);
     void setEstAcc(Eigen::Vector3d acc);
+    void setCamera(Camera camera);
 
     EIF_data getTgtData();
     EIF_data getSelfData();

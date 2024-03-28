@@ -88,7 +88,7 @@ std::vector<Eigen::Vector4d> GT_measurement::lidarMeasure(std::vector<MAV_eigen>
 	Eigen::Vector4d measurement;
 	std::vector<Eigen::Vector4d> measurements;
 	Eigen::Vector3d r_ns_B;
-	Eigen::Matrix3d R_W2B_i = formation_GT[self_index].R_w2b;
+	Eigen::Matrix3d R_W2B_i = formation_GT[self_index].R_w2b.inverse();
 	for(int i=0; i<formation_num; i++)
 	{
 		if(i != self_index)
